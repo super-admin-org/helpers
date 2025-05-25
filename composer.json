@@ -1,0 +1,30 @@
+{
+    "name": "super-admin-ext/helpers",
+    "description": "Helpers extension for super-admin",
+    "type": "library",
+    "keywords": ["super-admin", "helpers"],
+    "homepage": "https://github.com/super-admin-org/helpers",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "super-admin",
+            "email": "talemulislam@gmail.com"
+        }
+    ],
+    "require": {
+        "php": ">=7.0.0",
+        "super-admin-org/super-admin": "dev-main"
+    },
+    "autoload": {
+        "psr-4": {
+            "SuperAdmin\\Admin\\Helpers\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "SuperAdmin\\Admin\\Helpers\\HelpersServiceProvider"
+            ]
+        }
+    }
+}
