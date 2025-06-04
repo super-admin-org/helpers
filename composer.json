@@ -20,6 +20,11 @@
             "SuperAdmin\\Admin\\Helpers\\": "src/"
         }
     },
+    "autoload-dev": {
+        "psr-4": {
+            "SuperAdmin\\Admin\\Helpers\\Tests\\": "tests/"
+        }
+    },
     "extra": {
         "laravel": {
             "providers": [
