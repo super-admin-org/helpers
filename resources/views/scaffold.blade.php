@@ -163,6 +163,9 @@
             handle: ".move-handle"
         });
 
+        // initialize relation count based on existing rows
+        let relation_count = document.querySelectorAll('#model-relations tbody tr').length;
+
         document.getElementById('add-table-field').addEventListener("click",function (event) {
 
             let template = document.getElementById('table-field-tpl').innerHTML;
@@ -183,7 +186,12 @@
         if (document.getElementById('add-model-relation')){
             // not implemented yet :-(
             document.getElementById('add-model-relation').addEventListener("click",function (event) {
-                document.getElementById('model-relations tbody').append(document.getElementById('model-relation-tpl').html().replace(/__index__/g, document.getElementById('model-relations tr').length - 1));
+                let template = document.getElementById('model-relation-tpl').innerHTML;
+                let relationRow = template.replace(/__index__/g, relation_count);
+                let newRow = document.createElement('tr');
+                newRow.innerHTML = relationRow;
+
+                document.querySelector('#model-relations tbody').appendChild(newRow);
 
                 relation_count++;
             });
