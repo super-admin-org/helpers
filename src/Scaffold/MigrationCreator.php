@@ -13,7 +13,7 @@ class MigrationCreator extends BaseMigrationCreator
     protected $bluePrint = '';
 
     /**
-     * Create a new model.
+     * Create a new migration file.
      *
      * @param string    $name
      * @param string    $path
