@@ -50,7 +50,7 @@ class ControllerCreator
      */
     public function create($model, $fields)
     {
-        $path = $this->getpath($this->name);
+        $path = $this->getPath($this->name);
 
         if ($this->files->exists($path)) {
             throw new \Exception("Controller [$this->name] already exists!");

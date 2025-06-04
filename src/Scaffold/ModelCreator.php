@@ -56,7 +56,7 @@ class ModelCreator
      */
     public function create($keyName = 'id', $timestamps = true, $softDeletes = false)
     {
-        $path = $this->getpath($this->name);
+        $path = $this->getPath($this->name);
 
         if ($this->files->exists($path)) {
             throw new \Exception("Model [$this->name] already exists!");
