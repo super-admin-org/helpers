@@ -34,7 +34,7 @@ class RouteController extends Controller
                 })->implode('&nbsp;');
 
                 $grid->uri()->display(function ($uri) {
-                    return preg_replace('/\{.+?\}/', '<code>$0</span>', $uri);
+                    return preg_replace('/\{.+?\}/', '<code>$0</code>', $uri);
                 })->sortable();
 
                 $grid->name();
