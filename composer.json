@@ -13,7 +13,7 @@
     ],
     "require": {
         "php": ">=8.0.0",
-        "super-admin-org/super-admin": "dev-main"
+        "super-admin-org/super-admin": "^1.0"
     },
     "autoload": {
         "psr-4": {
