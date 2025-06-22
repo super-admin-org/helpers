@@ -4,8 +4,8 @@ Helpers for Super-Admin
 <p align="center">
 
 [![StyleCI](https://styleci.io/repos/384432915/shield?branch=main)](https://styleci.io/repos/384432915)
-[![Packagist](https://img.shields.io/github/license/super-admin-org/helpers.svg?style=flat-square&color=brightgreen)](https://packagist.org/packages/super-admin-ext/helpers)
-[![Total Downloads](https://img.shields.io/packagist/dt/super-admin-ext/helpers.svg?style=flat-square)](https://packagist.org/packages/super-admin-ext/helpers)
+[![Packagist](https://img.shields.io/github/license/super-admin-org/helpers.svg?style=flat-square&color=brightgreen)](https://packagist.org/packages/super-admin-org/helpers)
+[![Total Downloads](https://img.shields.io/packagist/dt/super-admin-org/helpers.svg?style=flat-square)](https://packagist.org/packages/super-admin-org/helpers)
 [![Pull request welcome](https://img.shields.io/badge/pr-welcome-green.svg?style=flat-square&color=brightgreen)]()
 
 </p>
@@ -20,7 +20,7 @@ Helpers for Super-Admin
 ## Installation
 
 ```
-$ composer require super-admin-ext/helpers
+$ composer require super-admin-org/helpers
 ```
 Import menu items.
 ```

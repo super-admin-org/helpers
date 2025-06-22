@@ -1,5 +1,5 @@
 {
-    "name": "super-admin-ext/helpers",
+    "name": "super-admin-org/helpers",
     "description": "Helpers extension for super-admin",
     "type": "library",
     "keywords": ["super-admin", "helpers"],
