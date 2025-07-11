@@ -1,5 +1,9 @@
 <?php
-
+/**
+ *
+ * @author Talemul Islam <talemulislam@gmail.com>
+ * @link   https://talemul.com
+ */
 namespace DummyNamespace;
 
 use Illuminate\Database\Eloquent\Model;

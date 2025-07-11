@@ -1,5 +1,9 @@
 <?php
-
+/**
+ *
+ * @author Talemul Islam <talemulislam@gmail.com>
+ * @link   https://talemul.com
+ */
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Database\Migrations\Migration;
