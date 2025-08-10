@@ -23,13 +23,35 @@ class ScaffoldController extends Controller
 {
     public function index(Content $content)
     {
-        $scaffolds = Scaffold::latest()->paginate(15); // Adjust pagination if needed
+        $query = Scaffold::query();
+
+        // Handle search
+        if (request()->filled('search')) {
+            $search = request('search');
+            $query->where(function ($q) use ($search) {
+                $q->where('table_name', 'like', "%{$search}%")
+                    ->orWhere('model_name', 'like', "%{$search}%")
+                    ->orWhere('controller_name', 'like', "%{$search}%");
+            });
+        }
+
+        // Handle sorting
+        $sort = request('sort', 'id'); // default column
+        $direction = request('direction', 'asc'); // default direction
+        $allowedSorts = ['id', 'table_name', 'model_name', 'controller_name', 'created_at'];
+
+        if (!in_array($sort, $allowedSorts)) {
+            $sort = 'id';
+        }
+
+        $scaffolds = $query->orderBy($sort, $direction)->paginate(15);
 
         return $content
             ->header('Scaffold List')
             ->description('Browse all scaffold definitions')
-            ->row(view('super-admin-helpers::scaffold_list', compact('scaffolds')));
+            ->row(view('super-admin-helpers::scaffold_list', compact('scaffolds', 'sort', 'direction')));
     }
+
 
     public function create(Content $content)
     {
