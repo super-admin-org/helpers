@@ -4,11 +4,14 @@
  * @author Talemul Islam <talemulislam@gmail.com>
  * @link   https://talemul.com
  */
+
 namespace DummyNamespace;
-
-use Illuminate\Database\Eloquent\Model;
+DummyImportCarbon
+DummyImportCollection
 DummyImportSoftDeletesTrait
+use Illuminate\Database\Eloquent\Model;
 
+DummyPhpDoc
 class DummyClass extends Model
 {
     DummyUseSoftDeletesTrait
@@ -18,4 +21,6 @@ class DummyClass extends Model
     DummyModelKey
 
     DummyTimestamp
+
+    DummyFillable
 }

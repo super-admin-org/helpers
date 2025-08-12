@@ -168,7 +168,8 @@ class ScaffoldController extends Controller
                     ->create(
                         $request->get('primary_key'),
                         $request->get('timestamps') == 'on' || $request->has('timestamps'),
-                        $request->get('soft_deletes') == 'on' || $request->has('soft_deletes')
+                        $request->get('soft_deletes') == 'on' || $request->has('soft_deletes'),
+                        $scaffold
                     );
             }
 
