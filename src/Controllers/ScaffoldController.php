@@ -23,7 +23,6 @@ use Illuminate\Database\Eloquent\Model as EloquentModel;
 use SuperAdmin\Admin\Facades\Admin;
 
 
-
 class ScaffoldController extends Controller
 {
     public function index(Content $content)
@@ -96,8 +95,6 @@ class ScaffoldController extends Controller
             ->header('Edit Scaffold')
             ->row(view('super-admin-helpers::scaffold', compact('scaffold', 'modelsForSelect', 'dbTypes', 'action')));
     }
-
-
 
 
     public function store(Request $request)
@@ -176,13 +173,8 @@ class ScaffoldController extends Controller
                 $modelPath = app_path(str_replace('\\', '/', str_replace('App\\', '', $request->get('model_name'))) . '.php');
                 $this->backupIfExists($modelPath);
 
-                $paths['model'] = (new ModelCreator($request->get('table_name'), $request->get('model_name')))
-                    ->create(
-                        $request->get('primary_key'),
-                        $request->get('timestamps') == 'on' || $request->has('timestamps'),
-                        $request->get('soft_deletes') == 'on' || $request->has('soft_deletes'),
-                        $scaffold
-                    );
+                $paths['model'] = (new ModelCreator($scaffold))
+                    ->create($scaffold);
             }
 
             // 2. Migration

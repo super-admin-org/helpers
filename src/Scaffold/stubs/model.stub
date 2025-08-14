@@ -23,4 +23,7 @@ class DummyClass extends Model
     DummyTimestamp
 
     DummyFillable
+
+    DummyRelations
+
 }
