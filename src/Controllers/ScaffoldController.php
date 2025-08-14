@@ -19,6 +19,7 @@ use SuperAdmin\Admin\Helpers\Scaffold\ModelCreator;
 use SuperAdmin\Admin\Helpers\Scaffold\ControllerCreator;
 use SuperAdmin\Admin\Helpers\Scaffold\ApiControllerCreator;
 use SuperAdmin\Admin\Helpers\Scaffold\BladeCrudCreator;
+use SuperAdmin\Admin\Helpers\Scaffold\PestTestCreator;
 use SuperAdmin\Admin\Layout\Content;
 use Illuminate\Support\Facades\File;
 use Illuminate\Database\Eloquent\Model as EloquentModel;
@@ -272,87 +273,138 @@ class ScaffoldController extends Controller
         try {
             // 1. Model
             if (in_array('model', $request->get('create'))) {
-                $modelPath = app_path(str_replace('\\', '/', str_replace('App\\', '', $request->get('model_name'))) . '.php');
-                $this->backupIfExists($modelPath);
+                try {
+                    $modelPath = app_path(str_replace('\\', '/', str_replace('App\\', '', $request->get('model_name'))) . '.php');
+                    $this->backupIfExists($modelPath);
 
-                $paths['model'] = (new ModelCreator($scaffold))
-                    ->create($scaffold);
+                    $paths['model'] = (new ModelCreator($scaffold))
+                        ->create($scaffold);
+                } catch (\Throwable $e) {
+                    Log::error('Generating model failed: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
+                }
+
             }
 
             // 2. Migration
             if (in_array('migration', $request->get('create'))) {
-                $tableName = $request->get('table_name');
-                $migrationName = 'create_' . $tableName . '_table';
-                $migrationFiles = glob(database_path('migrations/*_' . $migrationName . '.php'));
-                foreach ($migrationFiles as $file) {
-                    $this->backupIfExists($file);
+                try {
+                    $tableName = $request->get('table_name');
+                    $migrationName = 'create_' . $tableName . '_table';
+                    $migrationFiles = glob(database_path('migrations/*_' . $migrationName . '.php'));
+                    foreach ($migrationFiles as $file) {
+                        $this->backupIfExists($file);
+                    }
+
+                    $paths['migration'] = (new MigrationCreator(app('files'), '/'))->buildBluePrint(
+                        $request->get('fields'),
+                        $request->get('primary_key', 'id'),
+                        $request->get('timestamps') == 'on' || $request->has('timestamps'),
+                        $request->get('soft_deletes') == 'on' || $request->has('soft_deletes')
+                    )->create($migrationName, database_path('migrations'), $tableName);
+                } catch (\Throwable $e) {
+                    Log::error('Generating migration failed: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
                 }
 
-                $paths['migration'] = (new MigrationCreator(app('files'), '/'))->buildBluePrint(
-                    $request->get('fields'),
-                    $request->get('primary_key', 'id'),
-                    $request->get('timestamps') == 'on' || $request->has('timestamps'),
-                    $request->get('soft_deletes') == 'on' || $request->has('soft_deletes')
-                )->create($migrationName, database_path('migrations'), $tableName);
             }
 
             // 3. Controller
             if (in_array('controller', $request->get('create'))) {
-                $controllerPath = app_path(str_replace('\\', '/', str_replace('App\\', '', $request->get('controller_name'))) . '.php');
-                $this->backupIfExists($controllerPath);
+                try {
+                    $controllerPath = app_path(str_replace('\\', '/', str_replace('App\\', '', $request->get('controller_name'))) . '.php');
+                    $this->backupIfExists($controllerPath);
 
-                $paths['controller'] = (new ControllerCreator($request->get('controller_name')))
-                    ->create($scaffold->id);
+                    $paths['controller'] = (new ControllerCreator($request->get('controller_name')))
+                        ->create($scaffold->id);
+                    //  Admin Route
+                    $route=$this->getRoute($request);
+                    $this->ensureAdminRoute($scaffold, $route);
+                } catch (\Throwable $e) {
+                    Log::error('Generating super-admin controller failed: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
+                }
             }
 
             // 4. Migrate DB
             if (in_array('migrate', $request->get('create'))) {
-                $table = $request->input('table_name');
-                $connection = config('database.default');
-                $schema = DB::connection($connection)->getSchemaBuilder();
-                $shouldMigrate = true;
+                try {
+                    $table = $request->input('table_name');
+                    $connection = config('database.default');
+                    $schema = DB::connection($connection)->getSchemaBuilder();
+                    $shouldMigrate = true;
 
-                if ($schema->hasTable($table)) {
-                    if (in_array('recreate_table', $request->get('create'))) {
-                        $schema->drop($table);
-                        $message .= "<br>Table <code>{$table}</code> dropped successfully.";
-                    } else {
-                        $shouldMigrate = false;
-                        $message .= "<br>Migration skipped: Table <code>{$table}</code> already exists.";
+                    if ($schema->hasTable($table)) {
+                        if (in_array('recreate_table', $request->get('create'))) {
+                            $schema->drop($table);
+                            $message .= "<br>Table <code>{$table}</code> dropped successfully.";
+                        } else {
+                            $shouldMigrate = false;
+                            $message .= "<br>Migration skipped: Table <code>{$table}</code> already exists.";
+                        }
                     }
-                }
 
-                if ($shouldMigrate) {
-                    Artisan::call('migrate');
-                    $message .= str_replace('Migrated:', '<br>Migrated:', Artisan::output());
+                    if ($shouldMigrate) {
+                        Artisan::call('migrate');
+                        $message .= str_replace('Migrated:', '<br>Migrated:', Artisan::output());
+                    }
+
+                } catch (\Throwable $e) {
+                    Log::error('Generating migrate failed: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
                 }
             }
 
+            $route = $this->createMenuItem($request);
+            $message .= '<br>Menu item created at: ' . $route;
 
-            // 5. Menu
-            if (in_array('menu_item', $request->get('create'))) {
-                $route = $this->createMenuItem($request);
-                $message .= '<br>Menu item created at: ' . $route;
-            }
-            // 6. Admin Route
-            $this->ensureAdminRoute($scaffold, $route);
 
-            // 7. API controller laravel mode
-
-            // make sure the trait exists
-            $this->ensureResponseMapperTrait();
+            if (in_array('api', $request->get('create'))) {
+                try {
+                    // make sure the trait exists
+                    $this->ensureResponseMapperTrait();
 
 // generate API controller (uses the trait via the stub)
-            $apiPath = (new ApiControllerCreator())->create($scaffold);
+                    $apiPath = (new ApiControllerCreator())->create($scaffold);
 
 // make sure the API route exists
-            $this->ensureApiRoute($scaffold);
+                    $this->ensureApiRoute($scaffold);
+                    $message .= '<br>API Controller : ' . $apiPath . ' We use response mapper trait to map the response to the correct format.';
+                } catch (\Throwable $e) {
+                    Log::error('Generating api failed: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
+                }
+            }
+            // 7. API controller laravel mode
 
-            // 1) Generate Blade CRUD
-            $result = (new BladeCrudCreator())->create($scaffold);
 
-// 2) Ensure web route
-            $this->ensureWebRoute($scaffold);
+            if (in_array('blade_crud', $request->get('create'))) {
+                try {
+                    // 1) Generate Blade CRUD
+                    $result = (new BladeCrudCreator())->create($scaffold);
+                    // 2) Ensure web route
+                    $this->ensureWebRoute($scaffold);
+                    $message .= '<br>Web Controller : ' . $result['controller'];
+                    $message .= '<br>Web views : ' . json_encode($result['views']) .
+                        '  We create a web route for the blade crud.';
+                } catch (\Throwable $e) {
+                    Log::error('Generating blade_crud failed: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
+                }
+            }else{
+                $message .= '<br> message despla failed for blade_crud failed: .';
+            }
+
+            // After existing generators inside saveScaffold(...)
+
+            if (in_array('test_case', $request->get('create'))) {
+                try {
+                    $testResult = (new PestTestCreator())
+                        ->create($scaffold, [
+                            'with_factory' => true,         // set false if you don’t want factories
+                            'overwrite' => true,        // set true to force-regenerate
+                        ]);
+                    $message .= '<br>Test Case : ' . json_encode($testResult) . '  We create test case for the crud.';
+                } catch (\Throwable $e) {
+                    Log::error('Generating tests failed: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
+                }
+            }else{
+                $message .= '<br> message despla failed for test case failed: .';
+            }
 
         } catch (\Exception $e) {
             Log::error('Scaffold generation failed', ['exception' => $e]);
@@ -841,28 +893,61 @@ PHP;
         // write the trait (with ceil fix)
         File::put($path, <<<'PHP'
 <?php
-
+/**
+ * @author Talemul Islam <talemulislam@gmail.com>
+ * @link   https://talemul.com
+ */
 namespace App\Traits;
 
 use Illuminate\Http\JsonResponse;
 
+/**
+ * Trait ResponseMapper
+ *
+ * Provides functionalities to handle API response formatting, including setting pagination data,
+ * creating custom JSON responses, and managing error handling.
+ */
 trait ResponseMapper
 {
-    protected $error = null;
+    /**
+     * @var mixed
+     */
+    protected mixed $error = null;
     protected $payload = null;
     protected $message = null;
     protected $responseCode = null;
 
+    /**
+     * Prepares pagination details from the given data.
+     *
+     * @param mixed $data The data object supporting pagination methods.
+     *
+     * @return array An array containing pagination information:
+     *               - 'page': Current page number.
+     *               - 'pageSize': Number of records per page.
+     *               - 'totalPage': Total number of pages.
+     *               - 'totalRecords': Total number of records.
+     */
     public function setPagination($data): array
     {
         return [
-            'page'         => $data->currentPage(),
-            'pageSize'     => $data->perPage(),
-            'totalPage'    => (int) ceil($data->total() / max(1, $data->perPage())),
+            'page' => $data->currentPage(),
+            'pageSize' => $data->perPage(),
+            'totalPage' => (int)ceil($data->total() / max(1, $data->perPage())),
             'totalRecords' => $data->total(),
         ];
     }
 
+    /**
+     * Sets the response data with the provided details.
+     *
+     * @param string|null $message The message to set for the response.
+     * @param mixed|null $error Error information, or null if no errors.
+     * @param int|null $responseCode The HTTP status code to set for the response.
+     * @param array $data The data to set in the response payload.
+     *
+     * @return void
+     */
     public function setResponseData($message = null, $error = null, $responseCode = null, $data = []): void
     {
         $this->message = $message;
@@ -871,6 +956,11 @@ trait ResponseMapper
         $this->payload = $data;
     }
 
+    /**
+     * Sends a JSON response using class properties for message, payload, error, and response code.
+     *
+     * @return JsonResponse The generated JSON response containing success status, message, data, and error details.
+     */
     public function sendJsonResponse(): JsonResponse
     {
         $code = $this->responseCode ?: 200;
@@ -878,11 +968,21 @@ trait ResponseMapper
         return response()->json([
             'success' => in_array($code, [200, 201, 204], true),
             'message' => $this->message,
-            'data'    => $this->payload,
-            'error'   => $this->error,
+            'data' => $this->payload,
+            'error' => $this->error,
         ], $code);
     }
 
+    /**
+     * Constructs a JSON response with the provided details.
+     *
+     * @param string|null $message The message to include in the response.
+     * @param mixed|null $error Error details or null if no error.
+     * @param int|null $responseCode The HTTP status code for the response. Defaults to 200.
+     * @param array $data The data to include in the response payload.
+     *
+     * @return JsonResponse The constructed JSON response.
+     */
     public function jsonResponse($message = null, $error = null, $responseCode = null, $data = []): JsonResponse
     {
         $code = $responseCode ?: 200;
@@ -890,16 +990,23 @@ trait ResponseMapper
         return response()->json([
             'success' => in_array($code, [200, 201, 204], true),
             'message' => $message,
-            'data'    => $data,
-            'error'   => $error,
+            'data' => $data,
+            'error' => $error,
         ], $code);
     }
-    /** Uniform 404 response */
+
+    /**
+     * Returns a JSON response for a "Not Found" error.
+     *
+     * @return \Illuminate\Http\JsonResponse The JSON response with a 404 status code and error details.
+     */
     protected function notFound(): \Illuminate\Http\JsonResponse
     {
         return $this->jsonResponse('Not found', ['resource' => 'Not found'], 404, []);
     }
+
 }
+
 PHP
         );
     }
@@ -951,9 +1058,9 @@ PHP
         $routeFile = base_path('routes/web.php');
         $content = File::exists($routeFile) ? File::get($routeFile) : "<?php\n\nuse Illuminate\\Support\\Facades\\Route;\n\n";
 
-        $modelFqcn  = ltrim((string)$scaffold->model_name, '\\');
+        $modelFqcn = ltrim((string)$scaffold->model_name, '\\');
         $modelShort = class_basename($modelFqcn);
-        $webFqcn    = "App\\Http\\Controllers\\{$modelShort}WebController";
+        $webFqcn = "App\\Http\\Controllers\\{$modelShort}WebController";
 
         $slug = Str::kebab(Str::pluralStudly($modelShort)); // student-infos
 

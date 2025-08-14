@@ -173,11 +173,11 @@
                 </div>
 
                 <div class="row mb-3">
-                    <div class="offset-sm-2 col-sm-10">
+                    <div class="offset-sm-1 col-sm-11">
                         @php
                             $createOptions = old('create', $scaffold->create_options ?? []);
                         @endphp
-                        @foreach(['migration', 'model', 'controller', 'migrate', 'menu_item','recreate_table'] as $option)
+                        @foreach(['migration', 'model', 'controller', 'migrate', 'recreate_table','api','blade_crud','test_case'] as $option)
                             <div class="form-check form-check-inline me-3">
                                 <input class="form-check-input" type="checkbox" name="create[]" value="{{ $option }}"
                                        id="{{ $option }}" {{ in_array($option, $createOptions) ? 'checked' : '' }}>
@@ -229,7 +229,7 @@
                                     <select name="fields[{{ $index }}][type]" class="form-select">
                                         @foreach($dbTypes as $type)
                                             <option
-                                                    value="{{ $type }}" {{ ($field['type'] ?? '') == $type ? 'selected' : '' }}>{{ $type }}</option>
+                                                value="{{ $type }}" {{ ($field['type'] ?? '') == $type ? 'selected' : '' }}>{{ $type }}</option>
                                         @endforeach
                                     </select>
                                 </td>
@@ -241,7 +241,7 @@
                                         <option value="" {{ ($field['key'] ?? '') == '' ? 'selected' : '' }}>NULL
                                         </option>
                                         <option
-                                                value="unique" {{ ($field['key'] ?? '') == 'unique' ? 'selected' : '' }}>
+                                            value="unique" {{ ($field['key'] ?? '') == 'unique' ? 'selected' : '' }}>
                                             Unique
                                         </option>
                                         <option value="index" {{ ($field['key'] ?? '') == 'index' ? 'selected' : '' }}>
@@ -282,7 +282,7 @@
                                         <option value="static" {{ $src==='static'?'selected':'' }}>static</option>
                                         @foreach(($modelsForSelect ?? []) as $fqcn)
                                             <option
-                                                    value="{{ $fqcn }}" {{ $src===$fqcn?'selected':'' }}>{{ $fqcn }}</option>
+                                                value="{{ $fqcn }}" {{ $src===$fqcn?'selected':'' }}>{{ $fqcn }}</option>
                                         @endforeach
                                     </select>
                                 </td>
