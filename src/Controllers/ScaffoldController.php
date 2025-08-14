@@ -18,6 +18,10 @@ use SuperAdmin\Admin\Helpers\Scaffold\MigrationCreator;
 use SuperAdmin\Admin\Helpers\Scaffold\ModelCreator;
 use SuperAdmin\Admin\Helpers\Scaffold\ControllerCreator;
 use SuperAdmin\Admin\Layout\Content;
+use Illuminate\Support\Facades\File;
+use Illuminate\Database\Eloquent\Model as EloquentModel;
+use SuperAdmin\Admin\Facades\Admin;
+
 
 class ScaffoldController extends Controller
 {
@@ -64,9 +68,10 @@ class ScaffoldController extends Controller
             'unsignedInteger', 'unsignedBigInteger', 'enum', 'json', 'jsonb', 'dateTimeTz', 'timeTz',
             'timestampTz', 'nullableTimestamps', 'binary', 'ipAddress', 'macAddress',
         ];
-
+        $modelsForSelect = $this->listAppModels(); // NEW
+        // Admin::script($this->scaffoldAutofillJs());
         $action = route('scaffold.store');
-        $content->row(view('super-admin-helpers::scaffold', compact('dbTypes', 'action')));
+        $content->row(view('super-admin-helpers::scaffold', compact('dbTypes', 'modelsForSelect', 'action')));
 
         return $content;
     }
@@ -83,12 +88,12 @@ class ScaffoldController extends Controller
             'unsignedInteger', 'unsignedBigInteger', 'enum', 'json', 'jsonb', 'dateTimeTz', 'timeTz',
             'timestampTz', 'nullableTimestamps', 'binary', 'ipAddress', 'macAddress',
         ];
-
+        // Admin::script($this->scaffoldAutofillJs());
         $action = route('scaffold.update', $scaffold->id);
-
+        $modelsForSelect = $this->listAppModels(); // NEW
         return $content
             ->header('Edit Scaffold')
-            ->row(view('super-admin-helpers::scaffold', compact('scaffold', 'dbTypes', 'action')));
+            ->row(view('super-admin-helpers::scaffold', compact('scaffold', 'modelsForSelect', 'dbTypes', 'action')));
     }
 
 
@@ -152,6 +157,10 @@ class ScaffoldController extends Controller
                     'key' => $field['key'] ?? null,
                     'default' => $field['default'] ?? null,
                     'comment' => $field['comment'] ?? null,
+                    'input_type' => $field['input_type'] ?? null,
+                    'options_source' => $field['options_source'] ?? null,
+                    'options_value_col' => $field['options_value_col'] ?? null,
+                    'options_label_col' => $field['options_label_col'] ?? null,
                     'order' => $index,
                 ]);
             }
@@ -164,13 +173,8 @@ class ScaffoldController extends Controller
                 $modelPath = app_path(str_replace('\\', '/', str_replace('App\\', '', $request->get('model_name'))) . '.php');
                 $this->backupIfExists($modelPath);
 
-                $paths['model'] = (new ModelCreator($request->get('table_name'), $request->get('model_name')))
-                    ->create(
-                        $request->get('primary_key'),
-                        $request->get('timestamps') == 'on' || $request->has('timestamps'),
-                        $request->get('soft_deletes') == 'on' || $request->has('soft_deletes'),
-                        $scaffold
-                    );
+                $paths['model'] = (new ModelCreator($scaffold))
+                    ->create($scaffold);
             }
 
             // 2. Migration
@@ -196,7 +200,7 @@ class ScaffoldController extends Controller
                 $this->backupIfExists($controllerPath);
 
                 $paths['controller'] = (new ControllerCreator($request->get('controller_name')))
-                    ->create($request->get('model_name'), $request->get('fields'));
+                    ->create($scaffold->id);
             }
 
             // 4. Migrate DB
@@ -224,7 +228,7 @@ class ScaffoldController extends Controller
 
 
             // 5. Menu
-            if (in_array('menu_item', $request->get('create')) && $menu_item) {
+            if (in_array('menu_item', $request->get('create'))) {
                 $route = $this->createMenuItem($request);
                 $message .= '<br>Menu item created at: ' . $route;
             }
@@ -308,7 +312,7 @@ class ScaffoldController extends Controller
             'icon' => 'icon-file',
             'uri' => $route,
         ];
-        $root = Menu::create($root);
+        $root = Menu::firstOrCreate($root);
 
         return $route;
     }
@@ -344,5 +348,71 @@ class ScaffoldController extends Controller
         ]);
 
         return back()->with(compact('success'));
+    }
+
+    /**
+     * List all non-abstract Eloquent models under app/Models.
+     * @return array<string> FQCNs like "App\Models\User"
+     */
+    private function listAppModels(): array
+    {
+        $models = [];
+        foreach (File::allFiles(app_path('Models')) as $file) {
+            $fqcn = $this->classFromFile($file->getRealPath());
+            if (!$fqcn) continue;
+
+            if (is_subclass_of($fqcn, EloquentModel::class) && !(new \ReflectionClass($fqcn))->isAbstract()) {
+                $models[] = $fqcn;
+            }
+        }
+        sort($models);
+        return $models;
+    }
+
+    /**
+     * Parse FQCN from a PHP file using token_get_all.
+     */
+    private function classFromFile(string $path): ?string
+    {
+        $code = file_get_contents($path);
+        $tokens = token_get_all($code);
+        $namespace = '';
+        $class = '';
+
+        for ($i = 0, $len = count($tokens); $i < $len; $i++) {
+            if ($tokens[$i][0] === T_NAMESPACE) {
+                $ns = [];
+                for ($j = $i + 1; $j < $len; $j++) {
+                    if ($tokens[$j] === '{' || $tokens[$j] === ';') break;
+                    if (is_array($tokens[$j])) $ns[] = $tokens[$j][1];
+                }
+                $namespace = trim(implode('', $ns));
+            }
+            if ($tokens[$i][0] === T_CLASS) {
+                // Ignore anonymous classes
+                $isAnon = false;
+                for ($k = $i - 1; $k >= 0 && is_array($tokens[$k]); $k--) {
+                    if ($tokens[$k][0] === T_NEW) {
+                        $isAnon = true;
+                        break;
+                    }
+                    if ($tokens[$k][0] === T_STRING) break;
+                }
+                if ($isAnon) continue;
+
+                // Next string token after T_CLASS is the class name
+                for ($j = $i + 1; $j < $len; $j++) {
+                    if ($tokens[$j][0] === T_STRING) {
+                        $class = $tokens[$j][1];
+                        break 2;
+                    }
+                }
+            }
+        }
+
+        if ($class) {
+            return $namespace ? $namespace . '\\' . $class : $class;
+        }
+        return null;
     }
 }

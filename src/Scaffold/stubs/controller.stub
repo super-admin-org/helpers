@@ -16,13 +16,6 @@ use SuperAdmin\Admin\Show;
 class DummyClass extends AdminController
 {
     /**
-     * Title for current resource.
-     *
-     * @var string
-     */
-    protected $title = 'DummyTitle';
-
-    /**
      * Make a grid builder.
      *
      * @return Grid
@@ -31,7 +24,7 @@ class DummyClass extends AdminController
     {
         $grid = new Grid(new DummyModel());
 
-        DummyGridField
+DummyGridField
 
         return $grid;
     }
@@ -46,7 +39,7 @@ class DummyClass extends AdminController
     {
         $show = new Show(DummyModel::findOrFail($id));
 
-        DummyShowField
+DummyShowField
 
         return $show;
     }
@@ -60,8 +53,57 @@ class DummyClass extends AdminController
     {
         $form = new Form(new DummyModel());
 
-        DummyFormField
+DummyFormField
 
         return $form;
+    }
+
+    /**
+     * Build options array for select/radio/checkbox inputs.
+     *
+     * @param string|null $source  'static' or FQCN like 'App\\Models\\User'
+     * @param string|null $value   CSV values for static, or DB column for model (default 'id')
+     * @param string|null $label   CSV labels for static, or DB column for model (default 'name')
+     * @return array<string,string>
+     */
+    protected function optionsMap(?string $source, ?string $value, ?string $label): array
+    {
+        if (!$source) {
+            return [];
+        }
+
+        if ($source === 'static') {
+            $values = $this->csvToArray($value);
+            $labels = $this->csvToArray($label);
+            $out = [];
+            foreach ($values as $i => $v) {
+                $out[$v] = $labels[$i] ?? $v;
+            }
+            return $out;
+        }
+
+        // Model source
+        $fqcn = ltrim((string)$source, '\\');
+        if (!class_exists($fqcn)) {
+            return [];
+        }
+
+        $v = $value ?: 'id';
+        $l = $label ?: 'name';
+
+        // pluck(label, value) => [value => label]
+        return $fqcn::query()->pluck($l, $v)->toArray();
+    }
+
+    /**
+     * Split comma separated values safely.
+     *
+     * @param string|null $csv
+     * @return array<int,string>
+     */
+    protected function csvToArray(?string $csv): array
+    {
+        if (!$csv) return [];
+        return array_values(array_filter(array_map('trim', explode(',', $csv)), 'strlen'));
     }
 }

@@ -76,6 +76,7 @@ class ModelCreator
      * @var bool
      */
     protected $needsCollection = false;
+    protected $scaffold;
 
     /**
      * ModelCreator constructor.
@@ -84,13 +85,15 @@ class ModelCreator
      * @param string $name
      * @param null $files
      */
-    public function __construct($tableName, $name, $files = null)
+    public function __construct(Scaffold $scaffold = null, $files = null)
     {
-        $this->tableName = $tableName;
+        $this->tableName = $scaffold->table_name;
 
-        $this->name = $name;
+        $this->name = $scaffold->model_name;
+        $this->scaffold = $scaffold;
 
         $this->files = $files ?: app('files');
+        // dd($scaffold);
     }
 
     /**
@@ -104,8 +107,12 @@ class ModelCreator
      * @throws \Exception
      *
      */
-    public function create($keyName = 'id', $timestamps = true, $softDeletes = false, Scaffold $scaffold = null)
+    public function create()
     {
+        $scaffold = $this->scaffold;
+        $keyName = 'id';
+        $timestamps = $scaffold->timestamps;
+        $softDeletes = $scaffold->soft_deletes;
         $path = $this->getPath($this->name);
 
         if ($this->files->exists($path)) {
@@ -113,7 +120,7 @@ class ModelCreator
         }
 
         $stub = $this->files->get($this->getStub());
-        $scaffold=Scaffold::with('details')->find($scaffold->id);
+        $scaffold = Scaffold::with('details')->find($scaffold->id);
         $phpDoc = $this->buildPhpDoc(
             $scaffold,
 
@@ -122,6 +129,10 @@ class ModelCreator
             (bool)$scaffold->soft_deletes
         );
         $fillableCode = $this->buildFillable($scaffold->details, $scaffold->primary_key ?: 'id');
+        $relations = $this->buildRelations($scaffold->details);
+
+        $stub = str_replace('DummyRelations', $relations, $stub);
+
         $stub = $this->replaceClass($stub, $this->name)
             ->replaceNamespace($stub, $this->name)
             ->replaceSoftDeletes($stub, $softDeletes)
@@ -130,6 +141,7 @@ class ModelCreator
             ->replacePrimaryKey($stub, $keyName)
             ->replacePhpDoc($stub, $phpDoc)
             ->replaceFillable($stub, $fillableCode)
+            ->replaceRelations($stub, $relations)
             ->replaceSpace($stub);
 
         $this->files->put($path, $stub);
@@ -319,29 +331,24 @@ class ModelCreator
 
         // Primary key
         $lines[] = " * @property int \${$primaryKey}";
-        $details =  $scaffold->details ;
-        Log::info('scaffold:' . json_encode($scaffold->details));
+
+        $details = $scaffold->details;
+
         // Fields
         foreach ($details as $d) {
-            Log::info('scaffold details of helper model creator:' . json_encode($d));
             $name = $d->name ?? null;
             $type = strtolower((string)($d->type ?? 'string'));
             if (!$name || $name === $primaryKey) {
                 continue;
             }
 
-            // Map to PHPDoc type
+            // Map DB type to PHP type
             $phpType = $this->typeMap[$type] ?? 'mixed';
             if ($phpType === 'Carbon') {
                 $this->needsCarbon = true;
                 $phpType .= '|null';
-            } else {
-                // nullable flag from details table
-                $nullable = (bool)($d->nullable ?? false);
-                if ($nullable) {
-                    // For scalars we’ll indicate nullable using union syntax
-                    $phpType .= '|null';
-                }
+            } elseif ((bool)($d->nullable ?? false)) {
+                $phpType .= '|null';
             }
 
             $lines[] = " * @property {$phpType} \${$name}";
@@ -360,58 +367,44 @@ class ModelCreator
             $this->needsCarbon = true;
         }
 
-        // Infer belongsTo from *_id fields
+        // Implicit belongsTo from *_id fields
         foreach ($details as $d) {
             $name = $d->name ?? '';
             if (Str::endsWith($name, '_id')) {
-                $relatedBase = Str::beforeLast($name, '_id');      // e.g., user
-                $relatedName = Str::camel($relatedBase);           // user
-                $relatedModel = Str::studly($relatedBase);         // User
+                $relatedBase = Str::beforeLast($name, '_id');
+                $relatedName = Str::camel($relatedBase);
+                $relatedModel = Str::studly($relatedBase);
                 $lines[] = " * @property-read {$relatedModel} \${$relatedName}";
             }
         }
 
-        // Explicit relations from create_options['relations']
-        // Expected shape (example):
-        // [
-        //   ['type' => 'hasMany', 'name' => 'posts', 'model' => '\\App\\Models\\Post'],
-        //   ['type' => 'hasOne', 'name' => 'profile', 'model' => '\\App\\Models\\Profile'],
-        //   ['type' => 'belongsToMany', 'name' => 'roles', 'model' => '\\App\\Models\\Role']
-        // ]
-        $relations = (array)($scaffold->create_options['relations'] ?? []);
-        foreach ($relations as $rel) {
-            $type = strtolower((string)($rel['type'] ?? ''));
-            $name = (string)($rel['name'] ?? '');
-            $model = (string)($rel['model'] ?? '');
-            if (!$type || !$name || !$model) {
+        // Relations inferred from input_type + options_source
+        foreach ($details as $d) {
+            if (!in_array($d->input_type, ['select', 'radio', 'checkbox'])) {
                 continue;
             }
 
-            $shortModel = ltrim($model, '\\'); // keep FQCN but trimmed
-            switch ($type) {
-                case 'hasmany':
-                case 'belongstomany':
-                case 'morphmany':
-                    $lines[] = " * @property-read Collection<int, {$shortModel}> \${$name}";
-                    $lines[] = " * @property-read int|null \${$name}_count";
-                    $this->needsCollection = true;
-                    break;
+            if (!empty($d->options_source) && $d->options_source !== 'static') {
+                $relatedModel = ltrim($d->options_source, '\\');
+                $relatedBase = class_basename($relatedModel);
+                $relationName = Str::camel(Str::plural($relatedBase));
 
-                case 'hasone':
-                case 'belongsto':
-                case 'morphone':
-                    $lines[] = " * @property-read {$shortModel} \${$name}";
-                    break;
+                $type = match ($d->input_type) {
+                    'checkbox' => "Collection<int, {$relatedBase}>",
+                    'select', 'radio' => $relatedBase,
+                    default => 'mixed',
+                };
 
-                default:
-                    // unknown relation type – skip
-                    break;
+                $lines[] = " * @property-read {$type} \${$relationName}";
+//                if ($d->input_type === 'checkbox') {
+//                    $lines[] = " * @property-read int|null \${$relationName}_count";
+//                    $this->needsCollection = true;
+//                }
             }
         }
 
-        // Mix in base Model (helps IDEs)
         $lines[] = " *";
-        $lines[] = " * @mixin Model";
+        $lines[] = " * @mixin \Illuminate\Database\Eloquent\Model";
         $lines[] = " */";
 
         return implode("\n", $lines);
@@ -461,13 +454,17 @@ class ModelCreator
 
         $indent = '    '; // 4 spaces
         $lines = [];
-        $lines[] = 'protected $fillable = [';
+        $lines[] = '    protected $fillable = [';
         foreach ($fields as $f) {
             $lines[] = "{$indent}'{$f}',";
         }
         $lines[] = '];';
-
-        return implode("\n{$indent}", $lines);
+        $phpDocs = '/**
+     * The attributes that are mass assignable.
+     *
+     * @var list<string>
+     */';
+        return $phpDocs . "\n" . implode("\n{$indent}", $lines);
     }
 
     /**
@@ -482,5 +479,60 @@ class ModelCreator
         $stub = str_replace('DummyFillable', $fillableCode, $stub);
         return $this;
     }
+
+    /**
+     * Replaces placeholders with actual relations in the given stub content.
+     *
+     * @param string $stub The stub content passed by reference.
+     * @param string $relations The relations to replace the placeholder with.
+     * @return $this
+     */
+    protected function replaceRelations(&$stub, string $relations)
+    {
+        $stub = str_replace('DummyRelations', $relations, $stub);
+        return $this;
+    }
+
+    /**
+     * Build the relationships for the given fields.
+     *
+     * @param array $fields Collection of field definitions used to build relations.
+     * @return string Generated PHP code for model relationships based on field configurations.
+     */
+    protected function buildRelations($fields): string
+    {
+        $output = '';
+
+        foreach ($fields as $field) {
+            if (!in_array($field->input_type, ['select', 'radio', 'checkbox'])) continue;
+
+            if ($field->options_source && $field->options_source !== 'static') {
+                $relatedModel = $field->options_source;
+                $value = $field->options_value_col;
+                $relationName = Str::camel(Str::plural(class_basename($relatedModel)));
+                $phpDocsRelations = Str::lower(Str::headline($relationName));
+
+                $methodBody = match ($field->input_type) {
+                    'checkbox' => "return \$this->belongsToMany(\\{$relatedModel}::class);",
+                    'select' => "return \$this->hasOne(\\{$relatedModel}::class, '{$field->name}','{$field->options_value_col}');",
+                    'radio' => "return \$this->hasOne(\\{$relatedModel}::class, '{$field->name}','{$field->options_value_col}');",
+                };
+                $phpDocsMethodBody = match ($field->input_type) {
+                    'checkbox' => "\Illuminate\Database\Eloquent\Relations\BelongsToMany",
+                    'select' => "\Illuminate\Database\Eloquent\Relations\HasOne",
+                    'radio' => "\Illuminate\Database\Eloquent\Relations\HasOne",
+                };
+                $phpDocs = "    /**
+     * Retrieve the {$phpDocsRelations} associated with the model.
+     *
+     * @return {$phpDocsMethodBody}
+     */";
+                $output .= "\n" . $phpDocs . "\n    public function {$relationName}()\n    {\n        {$methodBody}\n    }\n";
+            }
+        }
+
+        return $output;
+    }
+
 
 }
