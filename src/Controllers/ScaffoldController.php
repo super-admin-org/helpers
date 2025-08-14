@@ -232,6 +232,9 @@ class ScaffoldController extends Controller
                 $route = $this->createMenuItem($request);
                 $message .= '<br>Menu item created at: ' . $route;
             }
+            // 6. Admin Route
+            $this->ensureAdminRoute($scaffold, $route);
+
 
         } catch (\Exception $e) {
             Log::error('Scaffold generation failed', ['exception' => $e]);
@@ -414,5 +417,145 @@ class ScaffoldController extends Controller
             return $namespace ? $namespace . '\\' . $class : $class;
         }
         return null;
+    }
+
+    protected function ensureAdminRoute(Scaffold $scaffold, $route): void
+    {
+        $routeFile = base_path('app/Admin/routes.php');
+        if (!File::exists($routeFile)) {
+            // If file is missing, create it with a full group and the resource.
+            $this->writeNewAdminRoutesFile($scaffold,$route);
+            return;
+        }
+
+        $content = File::get($routeFile);
+
+        // slug: student_info -> student-info
+//        $slug = Str::kebab(Str::singular($scaffold->table_name ?: ''));
+//        if ($slug === '') {
+//            $slug = Str::kebab(class_basename($scaffold->model_name ?: 'resource'));
+//        }
+        $slug = $route;
+
+        // Normalize FQCN (handles AppAdminControllersX -> App\Admin\Controllers\X)
+        $controllerFqcn = $this->normalizeFqcn((string)$scaffold->controller_name);
+        if ($controllerFqcn === '') {
+            $stud = Str::studly(Str::singular($scaffold->table_name));
+            $controllerFqcn = "App\\Admin\\Controllers\\{$stud}Controller";
+        }
+
+        // If route already present (either resources([...]) or resource(...)), do nothing.
+        $already = Str::contains($content, "'{$slug}' => {$controllerFqcn}::class")
+            || Str::contains($content, "\$router->resource('{$slug}', {$controllerFqcn}::class")
+            || Str::contains($content, "\$router->resources([") && Str::contains($content, "'{$slug}'") && Str::contains($content, class_basename($controllerFqcn));
+
+        if ($already) {
+            try {
+                Artisan::call('route:clear');
+            } catch (\Throwable $e) {
+            }
+            return;
+        }
+
+        // Prefer adding into an existing $router->resources([...]) block
+        if (preg_match('/\$router->resources\(\s*\[(.*?)\]\s*\);/s', $content, $m, PREG_OFFSET_CAPTURE)) {
+            $fullBlockStart = $m[0][1];
+            $innerStart = $m[1][1];
+            $innerLen = strlen($m[1][0]);
+            $insertLine = "        '{$slug}' => {$controllerFqcn}::class,\n";
+
+            // Insert at end of inner array, before ]);
+            $content = substr_replace($content, $m[1][0] . $insertLine, $innerStart, $innerLen);
+            File::put($routeFile, $this->normalizeEol($content));
+            try {
+                Artisan::call('route:clear');
+            } catch (\Throwable $e) {
+            }
+            return;
+        }
+
+        // Else, try to insert a single resource() before the closing of the admin Route::group
+        if (preg_match('/Route::group\(\s*\[(.*?)\]\s*,\s*function\s*\(Router\s*\$router\)\s*\{/s', $content)) {
+            $closingPos = strrpos($content, '});');
+            if ($closingPos !== false) {
+                $line = "\$router->resource('{$slug}', {$controllerFqcn}::class);\n";
+                $content = substr_replace($content, $line, $closingPos, 0);
+                File::put($routeFile, $this->normalizeEol($content));
+                try {
+                    Artisan::call('route:clear');
+                } catch (\Throwable $e) {
+                }
+                return;
+            }
+        }
+
+        // Fallback: append a full admin group
+        $this->appendAdminGroupWithResource($scaffold, $routeFile);
+        try {
+            Artisan::call('route:clear');
+        } catch (\Throwable $e) {
+        }
+    }
+
+    /** Create a fresh routes file with the admin group + resource. */
+    protected function writeNewAdminRoutesFile($scaffold,$slug): void
+    {
+        $routeFile = base_path('app/Admin/routes.php');
+        $controllerFqcn = $this->normalizeFqcn((string)$scaffold->controller_name);
+        // $slug = Str::kebab(Str::singular($scaffold->table_name));
+        $stub = <<<PHP
+<?php
+
+use Illuminate\Routing\Router;
+
+Route::group([
+    'prefix'     => config('admin.route.prefix'),
+    'namespace'  => config('admin.route.namespace'),
+    'middleware' => config('admin.route.middleware'),
+    'as'         => config('admin.route.prefix') . '.',
+], function (Router \$router) {
+    \$router->resource('{$slug}', {$controllerFqcn}::class);
+});
+
+PHP;
+        File::put($routeFile, $this->normalizeEol($stub));
+    }
+
+    /** Append a new admin group if nothing matches. */
+    protected function appendAdminGroupWithResource($scaffold, string $routeFile): void
+    {
+        $controllerFqcn = $this->normalizeFqcn((string)$scaffold->controller_name);
+        $slug = $this->getRoute();
+        $block = <<<PHP
+
+Route::group([
+    'prefix'     => config('admin.route.prefix'),
+    'namespace'  => config('admin.route.namespace'),
+    'middleware' => config('admin.route.middleware'),
+    'as'         => config('admin.route.prefix') . '.',
+], function (Router \$router) {
+    \$router->resource('{$slug}', {$controllerFqcn}::class);
+});
+
+PHP;
+        File::append($routeFile, $this->normalizeEol($block));
+    }
+
+    /** Normalize FQCNs like "AppAdminControllersX" -> "App\\Admin\\Controllers\\X". */
+    protected function normalizeFqcn(?string $fqcn): string
+    {
+        $s = trim((string)$fqcn);
+        if ($s === '') return '';
+        $s = ltrim($s, '\\');
+        if (strpos($s, '\\') === false && Str::startsWith($s, 'App')) {
+            $parts = preg_split('/(?=[A-Z])/', $s, -1, PREG_SPLIT_NO_EMPTY);
+            if (!empty($parts)) $s = implode('\\', $parts);
+        }
+        return $s;
+    }
+
+    protected function normalizeEol(string $code): string
+    {
+        return rtrim(preg_replace("/\r\n?/", "\n", $code)) . "\n";
     }
 }
