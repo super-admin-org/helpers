@@ -2,8 +2,10 @@
 
 namespace SuperAdmin\Admin\Helpers\Scaffold;
 
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use SuperAdmin\Admin\Helpers\Model\Scaffold;
+use Illuminate\Support\Str;
 
 class ControllerCreator
 {
@@ -235,7 +237,8 @@ PHP;
 
         foreach ($scaffold->details as $d) {
             $name = $d->name;
-            $label = ucwords(str_replace('_', ' ', $name));
+            $default = $d->default;
+            $label = Str::headline($name);
             $type = strtolower((string)($d->input_type ?? 'text'));
             $src = $d->options_source;
             $val = $d->options_value_col;
@@ -248,7 +251,7 @@ PHP;
                 $l = $lab ? "'{$lab}'" : 'null';
                 return "\$this->optionsMap({$s}, {$v}, {$l})";
             };
-
+            $authID = Auth::user()->id;
             switch ($type) {
                 case 'select':
                     if ($src) {
@@ -288,9 +291,26 @@ PHP;
                 case 'file':
                     $rows[] = "\$form->file('{$name}', '{$label}');";
                     break;
+                case 'image':
+                    $rows[] = "\$form->image('{$name}', '{$label}');";
+                    break;
+                case 'switch':
+                    $rows[] = "\$form->switch('{$name}', '{$label}');";
+                    break;
 
                 case 'textarea':
                     $rows[] = "\$form->textarea('{$name}', '{$label}');";
+                    break;
+                case 'hidden':
+                    if ($name == 'created_by' || $name == 'updated_by') {
+                        $rows[] = "\$form->hidden('{$name}', '{$label}')->default('{$authID}');";
+                    } else {
+                        $rows[] = "\$form->hidden('{$name}', '{$label}')->default('{$default}');";
+                    }
+
+                    break;
+                case 'password':
+                    $rows[] = "\$form->password('{$name}', '{$label}')->toggleShow();";
                     break;
 
                 case 'number':
@@ -303,7 +323,12 @@ PHP;
 
                 default:
                     // text, char, string, others
-                    $rows[] = "\$form->text('{$name}', '{$label}');";
+                    if ($name == 'created_by' || $name == 'updated_by') {
+                        $rows[] = "\$form->hidden('{$name}', '{$label}')->default('{$authID}');";
+                    } else {
+                        $rows[] = "\$form->text('{$name}', '{$label}');";
+                    }
+
                     break;
             }
         }

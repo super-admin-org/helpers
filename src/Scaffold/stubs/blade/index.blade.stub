@@ -1,0 +1,33 @@
+@extends('DummySlug._layout')
+
+@section('content')
+<div class="mb-2">
+    <a href="{{ route('DummyRouteName.create') }}" class="btn btn-primary">Create</a>
+</div>
+
+<table class="table table-bordered table-striped">
+    <thead>
+    <tr>
+DummyIndexHead
+        <th style="width: 140px;">Actions</th>
+    </tr>
+    </thead>
+    <tbody>
+    @foreach($items as $row)
+        <tr>
+DummyIndexCols
+            <td>
+                <a href="{{ route('DummyRouteName.show', $row->id) }}" class="btn btn-sm btn-secondary">Show</a>
+                <a href="{{ route('DummyRouteName.edit', $row->id) }}" class="btn btn-sm btn-info">Edit</a>
+                <form method="POST" action="{{ route('DummyRouteName.destroy', $row->id) }}" class="d-inline" onsubmit="return confirm('Delete?');">
+                    @csrf @method('DELETE')
+                    <button class="btn btn-sm btn-danger">Delete</button>
+                </form>
+            </td>
+        </tr>
+    @endforeach
+    </tbody>
+</table>
+
+{{ $items->links() }}
+@endsection

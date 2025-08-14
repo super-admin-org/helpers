@@ -1,0 +1,122 @@
+<?php
+/**
+ *
+ * @author Talemul Islam <talemulislam@gmail.com>
+ * @link   https://talemul.com
+ */
+namespace DummyWebNamespace;
+
+use DummyModelNamespace;
+use Illuminate\Http\Request;
+use Illuminate\Routing\Controller as Controller;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Validator;
+
+class DummyWebClass extends Controller
+{
+    /** Display a listing. */
+    public function index()
+    {
+        $items = DummyModel::latest()->paginate(15);
+        return view('DummySlug.index', compact('items'));
+    }
+
+    /** Show the form for creating a new resource. */
+    public function create()
+    {
+        $options = $this->optionsBag();
+        return view('DummySlug.create', compact('options'));
+    }
+
+    /** Store a newly created resource in storage. */
+    public function store(Request $request)
+    {
+        $v = Validator::make($request->all(), $this->rulesStore());
+        if ($v->fails()) {
+            return back()->withErrors($v)->withInput();
+        }
+
+        $payload = Arr::except($v->validated(), $this->manyToManyKeys());
+        $model   = DummyModel::create($payload);
+
+        $this->syncManyToMany($model, $request);
+
+        return redirect()->route('DummyRouteName.index')->with('success', 'Created successfully.');
+    }
+
+    /** Display the specified resource. */
+    public function show($id)
+    {
+        $model = DummyModel::findOrFail($id);
+        return view('DummySlug.show', compact('model'));
+    }
+
+    /** Show the form for editing the specified resource. */
+    public function edit($id)
+    {
+        $model   = DummyModel::findOrFail($id);
+        $options = $this->optionsBag($model);
+        return view('DummySlug.edit', compact('model', 'options'));
+    }
+
+    /** Update the specified resource in storage. */
+    public function update(Request $request, $id)
+    {
+        $model = DummyModel::findOrFail($id);
+
+        $v = Validator::make($request->all(), $this->rulesUpdate($id));
+        if ($v->fails()) {
+            return back()->withErrors($v)->withInput();
+        }
+
+        $payload = Arr::except($v->validated(), $this->manyToManyKeys());
+        $model->fill($payload)->save();
+
+        $this->syncManyToMany($model, $request);
+
+        return redirect()->route('DummyRouteName.index')->with('success', 'Updated successfully.');
+    }
+
+    /** Remove the specified resource from storage. */
+    public function destroy($id)
+    {
+        $model = DummyModel::findOrFail($id);
+        $model->delete();
+
+        return redirect()->route('DummyRouteName.index')->with('success', 'Deleted successfully.');
+    }
+
+    /* ---------------- rules & options ---------------- */
+
+    protected function rulesStore(): array
+    {
+DummyRulesStore
+    }
+
+    protected function rulesUpdate($id): array
+    {
+DummyRulesUpdate
+    }
+
+    /** Map of UI options for select/radio/checkbox. */
+    protected function optionsBag(?DummyModel $model = null): array
+    {
+        return [
+DummyOptionsBag
+        ];
+    }
+
+    /** Keys that represent many-to-many arrays in the request. */
+    protected function manyToManyKeys(): array
+    {
+        return [
+DummyManyToManyKeys
+        ];
+    }
+
+    /** Sync belongsToMany relations. */
+    protected function syncManyToMany(DummyModel $model, Request $request): void
+    {
+DummySyncManyToMany
+    }
+}

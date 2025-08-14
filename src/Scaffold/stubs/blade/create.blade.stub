@@ -1,0 +1,8 @@
+@extends('DummySlug._layout')
+
+@section('content')
+<form method="POST" action="{{ route('DummyRouteName.store') }}" enctype="multipart/form-data">
+    @csrf
+    @include('DummySlug._form')
+</form>
+@endsection

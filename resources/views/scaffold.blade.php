@@ -263,6 +263,11 @@
                                         <option value="email" {{ $it==='email'?'selected':'' }}>Email</option>
                                         <option value="date" {{ $it==='date'?'selected':'' }}>Date</option>
                                         <option value="file" {{ $it==='file'?'selected':'' }}>File</option>
+
+                                        <option value="image" {{ $it==='image'?'selected':'' }}>Image</option>
+                                        <option value="password" {{ $it==='password'?'selected':'' }}>Password</option>
+                                        <option value="hiden" {{ $it==='hiden'?'selected':'' }}>Hidden</option>
+                                        <option value="switch" {{ $it==='switch'?'selected':'' }}>Switch</option>
                                         <option value="checkbox" {{ $it==='checkbox'?'selected':'' }}>Checkbox</option>
                                         <option value="radio" {{ $it==='radio'?'selected':'' }}>Radio</option>
                                         <option value="select" {{ $it==='select'?'selected':'' }}>Select</option>
@@ -371,6 +376,10 @@
                 <option value="email">Email</option>
                 <option value="date">Date</option>
                 <option value="file">File</option>
+                <option value="image">Image</option>
+                <option value="password">Password</option>
+                <option value="hiden">Hidden</option>
+                <option value="switch">Switch</option>
                 <option value="checkbox">Checkbox</option>
                 <option value="radio">Radio</option>
                 <option value="select">Select</option>
@@ -503,6 +512,7 @@
         // replace (no history entry) to avoid back-button ping-pong
         location.replace(url.toString());
     }
+
     reloadOnce();
 </script>
 

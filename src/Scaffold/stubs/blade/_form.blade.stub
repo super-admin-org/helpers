@@ -1,0 +1,10 @@
+@php
+    // $options provided by controller
+@endphp
+
+DummyFormFields
+
+<div class="mt-3">
+    <button class="btn btn-success">Save</button>
+    <a href="{{ route('DummyRouteName.index') }}" class="btn btn-link">Cancel</a>
+</div>

@@ -1,0 +1,189 @@
+<?php
+/**
+ *
+ * @author Talemul Islam <talemulislam@gmail.com>
+ * @link   https://talemul.com
+ */
+
+namespace DummyApiNamespace;
+
+use DummyModelNamespace;
+use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Routing\Controller as Controller;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Validator;
+use App\Traits\ResponseMapper;
+
+class DummyApiClass extends Controller
+{
+    use ResponseMapper;
+
+    /** List resources with optional includes: ?with=rel1,rel2 */
+    public function index(Request $request): JsonResponse
+    {
+        $query = DummyModel::query();
+
+        $with = $this->requestedIncludes($request);
+        if ($with) {
+            $query->with($with);
+        }
+
+        $perPage = (int) ($request->input('per_page', 15));
+        $data = $query->paginate($perPage);
+
+        return $this->jsonResponse(
+            'List fetched',
+            null,
+            200,
+            [
+                'items'      => $data->items(),
+                'pagination' => $this->setPagination($data),
+            ]
+        );
+    }
+
+    /** Show one resource with optional includes. */
+    public function show(Request $request, $id): JsonResponse
+    {
+        $with  = $this->requestedIncludes($request);
+        $model = DummyModel::with($with)->find($id);
+
+        if (!$model) {
+            return $this->notFound();
+        }
+
+        return $this->jsonResponse('Resource fetched', null, 200, $model);
+    }
+
+    /** Store a new resource. */
+    public function store(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), $this->rulesStore());
+        if ($validator->fails()) {
+            return $this->jsonResponse('Validation failed', $validator->errors(), 422, []);
+        }
+
+        $payload = Arr::except($validator->validated(), $this->manyToManyRequestKeys());
+        $model   = DummyModel::create($payload);
+
+        $this->syncManyToMany($model, $request);
+
+        $with = $this->requestedIncludes($request);
+        return $this->jsonResponse('Created', null, 201, $model->fresh($with));
+    }
+
+    /** Update an existing resource. */
+    public function update(Request $request, $id): JsonResponse
+    {
+        $model = DummyModel::find($id);
+
+        if (!$model) {
+            return $this->notFound();
+        }
+        $validator = Validator::make($request->all(), $this->rulesUpdate($id));
+        if ($validator->fails()) {
+            return $this->jsonResponse('Validation failed', $validator->errors(), 422, []);
+        }
+
+        $payload = Arr::except($validator->validated(), $this->manyToManyRequestKeys());
+        $model->fill($payload)->save();
+
+        $this->syncManyToMany($model, $request);
+
+        $with = $this->requestedIncludes($request);
+        return $this->jsonResponse('Updated', null, 200, $model->fresh($with));
+    }
+
+    /** Delete (soft-delete if model uses SoftDeletes). */
+    public function destroy($id): JsonResponse
+    {
+        $model = DummyModel::find($id);
+        if (!$model) {
+            return $this->notFound();
+        }
+        $model->delete();
+
+        return $this->jsonResponse('Deleted', null, 200, []);
+    }
+
+    /* -------------------- validation -------------------- */
+
+    /** Validation rules for store. */
+    protected function rulesStore(): array
+    {
+        // auto-generated from scaffold
+DummyRulesStore
+    }
+
+    /** Validation rules for update. */
+    protected function rulesUpdate($id): array
+    {
+        // usually same as store; tweak here if needed (unique:...,{$id})
+DummyRulesUpdate
+    }
+
+    /* -------------------- relations/meta helpers -------------------- */
+
+    /**
+     * Static meta derived from scaffold details for option-driven fields.
+     */
+    protected function fieldMeta(): array
+    {
+        return [
+DummyFieldMeta
+        ];
+    }
+
+    /** Keys expected for many-to-many arrays in the request body. */
+    protected function manyToManyRequestKeys(): array
+    {
+        $keys = [];
+        foreach ($this->fieldMeta() as $field => $m) {
+            if (($m['type'] ?? null) === 'checkbox' && ($m['source'] ?? null) === 'model' && !empty($m['relation'])) {
+                $keys[] = $m['relation']; // prefer relation key
+                $keys[] = $field;         // also accept the raw field name
+            }
+        }
+        return array_values(array_unique($keys));
+    }
+
+    /** Sync belongsToMany relations from request arrays. */
+    protected function syncManyToMany(DummyModel $model, Request $request): void
+    {
+        foreach ($this->fieldMeta() as $field => $m) {
+            if (($m['type'] ?? null) !== 'checkbox' || ($m['source'] ?? null) !== 'model' || empty($m['relation'])) {
+                continue;
+            }
+            $ids = $request->input($m['relation'], $request->input($field, []));
+            if (!is_array($ids)) {
+                $ids = (array) $ids;
+            }
+            $model->{$m['relation']}()->sync($ids);
+        }
+    }
+
+    /** Allowed relationship names to eager-load via ?with=... */
+    protected function allowedIncludes(): array
+    {
+        $allowed = [];
+        foreach ($this->fieldMeta() as $field => $m) {
+            if (($m['source'] ?? null) !== 'model') continue;
+
+            if (($m['type'] ?? '') === 'checkbox' && !empty($m['relation'])) {
+                $allowed[] = $m['relation']; // many-to-many
+            } elseif (in_array(($m['type'] ?? ''), ['select', 'radio'], true) && !empty($m['relation'])) {
+                $allowed[] = $m['relation']; // belongsTo
+            }
+        }
+        return array_values(array_unique($allowed));
+    }
+
+    /** Parse & filter requested includes from ?with=a,b,c. */
+    protected function requestedIncludes(Request $request): array
+    {
+        $with = array_values(array_filter(array_map('trim', explode(',', (string) $request->query('with')))));
+        if (empty($with)) return [];
+        return array_values(array_intersect($with, $this->allowedIncludes()));
+    }
+}

@@ -1,0 +1,9 @@
+@extends('DummySlug._layout')
+
+@section('content')
+<table class="table table-bordered">
+DummyShowRows
+</table>
+
+<a href="{{ route('DummyRouteName.index') }}" class="btn btn-link">Back</a>
+@endsection
