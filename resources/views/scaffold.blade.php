@@ -410,70 +410,70 @@
 
 <script>
 
-    (function() {
+    // (function() {
 
-        //$('select').select2();
+    //$('select').select2();
 
-        var el = document.getElementById('table-fields-body');
-        var sortable = Sortable.create(el, {
-            handle: '.move-handle'
-        });
+    var el = document.getElementById('table-fields-body');
+    var sortable = Sortable.create(el, {
+        handle: '.move-handle'
+    });
 
-        // initialize relation count based on existing rows
-        let relation_count = document.querySelectorAll('#model-relations tbody tr').length;
+    // initialize relation count based on existing rows
+    let relation_count = document.querySelectorAll('#model-relations tbody tr').length;
 
-        document.getElementById('add-table-field').addEventListener('click', function(event) {
+    document.getElementById('add-table-field').addEventListener('click', function(event) {
 
-            let template = document.getElementById('table-field-tpl').innerHTML;
-            let fieldRow = (String(template)).replace(/__index__/g, String(document.querySelectorAll('#table-fields tr').length - 1));
+        let template = document.getElementById('table-field-tpl').innerHTML;
+        let fieldRow = (String(template)).replace(/__index__/g, String(document.querySelectorAll('#table-fields tr').length - 1));
+        let newRow = document.createElement('tr');
+        newRow.innerHTML = fieldRow;
+        console.log(newRow);
+
+        document.querySelector('#table-fields-body').appendChild(newRow);
+        // maybe add nice select function
+    });
+
+    document.getElementById('table-fields').addEventListener('click', function(event) {
+        if (!event.target.closest('.table-field-remove')) return;
+        event.target.closest('tr').remove();
+    });
+
+    if (document.getElementById('add-model-relation')) {
+        // not implemented yet :-(
+        document.getElementById('add-model-relation').addEventListener('click', function(event) {
+            let template = document.getElementById('model-relation-tpl').innerHTML;
+            let relationRow = template.replace(/__index__/g, relation_count);
             let newRow = document.createElement('tr');
-            newRow.innerHTML = fieldRow;
-            console.log(newRow);
+            newRow.innerHTML = relationRow;
 
-            document.querySelector('#table-fields-body').appendChild(newRow);
-            // maybe add nice select function
+            document.querySelector('#model-relations tbody').appendChild(newRow);
+
+            relation_count++;
         });
 
-        document.getElementById('table-fields').addEventListener('click', function(event) {
-            if (!event.target.closest('.table-field-remove')) return;
-            event.target.closest('tr').remove();
+        document.getElementById('table-fields').querySelectorAll('.model-relation-remove').forEach(elm => {
+            elm.addEventListener('click', function(event) {
+                event.target.closest('tr').remove();
+            });
         });
+    }
 
-        if (document.getElementById('add-model-relation')) {
-            // not implemented yet :-(
-            document.getElementById('add-model-relation').addEventListener('click', function(event) {
-                let template = document.getElementById('model-relation-tpl').innerHTML;
-                let relationRow = template.replace(/__index__/g, relation_count);
-                let newRow = document.createElement('tr');
-                newRow.innerHTML = relationRow;
+    document.getElementById('scaffold').addEventListener('submit', function(event) {
+        const tableInput = document.getElementById('inputTableName');
+        const helpText = document.getElementById('table-name-help');
 
-                document.querySelector('#model-relations tbody').appendChild(newRow);
-
-                relation_count++;
-            });
-
-            document.getElementById('table-fields').querySelectorAll('.model-relation-remove').forEach(elm => {
-                elm.addEventListener('click', function(event) {
-                    event.target.closest('tr').remove();
-                });
-            });
+        if (!tableInput.value.trim()) {
+            event.preventDefault(); // prevent only if empty
+            tableInput.classList.add('is-invalid');
+            helpText.classList.remove('d-none');
+        } else {
+            tableInput.classList.remove('is-invalid');
+            helpText.classList.add('d-none');
         }
+    });
 
-        document.getElementById('scaffold').addEventListener('submit', function(event) {
-            const tableInput = document.getElementById('inputTableName');
-            const helpText = document.getElementById('table-name-help');
-
-            if (!tableInput.value.trim()) {
-                event.preventDefault(); // prevent only if empty
-                tableInput.classList.add('is-invalid');
-                helpText.classList.remove('d-none');
-            } else {
-                tableInput.classList.remove('is-invalid');
-                helpText.classList.add('d-none');
-            }
-        });
-
-    })();
+    //  })();
 
 
     document.addEventListener('DOMContentLoaded', function() {
@@ -495,5 +495,14 @@
             }
         });
     });
+
+    function reloadOnce() {
+        const url = new URL(location.href);
+        if (url.searchParams.get('_reloaded') === '1') return; // already reloaded
+        url.searchParams.set('_reloaded', '1');
+        // replace (no history entry) to avoid back-button ping-pong
+        location.replace(url.toString());
+    }
+    reloadOnce();
 </script>
 

@@ -23,6 +23,13 @@ use Illuminate\Database\Eloquent\Model as EloquentModel;
 use SuperAdmin\Admin\Facades\Admin;
 
 
+/**
+ * Class ScaffoldController
+ *
+ * Controller for managing scaffolds, including listing, creating, editing, storing, and updating scaffold definitions.
+ * Handles operations such as search, sorting, and scaffold-related functionalities like data validation,
+ * file generation, and database migrations.
+ */
 class ScaffoldController extends Controller
 {
     public function index(Content $content)
@@ -351,8 +358,10 @@ class ScaffoldController extends Controller
     }
 
     /**
-     * List all non-abstract Eloquent models under app/Models.
-     * @return array<string> FQCNs like "App\Models\User"
+     * Retrieves a list of fully qualified class names for all non-abstract Eloquent models
+     * within the application's Models directory.
+     *
+     * @return array An array of fully qualified class names for the discovered Eloquent models.
      */
     private function listAppModels(): array
     {
@@ -370,7 +379,10 @@ class ScaffoldController extends Controller
     }
 
     /**
-     * Parse FQCN from a PHP file using token_get_all.
+     * Extracts the fully qualified class name from a given PHP file.
+     *
+     * @param string $path The path to the PHP file to analyze.
+     * @return string|null The fully qualified class name if found, or null if no class is found.
      */
     private function classFromFile(string $path): ?string
     {

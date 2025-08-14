@@ -48,11 +48,12 @@
                 <thead>
                 <tr>
                     <th>{!! sortLink('id', 'ID', $sort, $direction) !!}</th>
+                    <th class="text-end">Actions</th>
                     <th>{!! sortLink('table_name', 'Table Name', $sort, $direction) !!}</th>
                     <th>{!! sortLink('model_name', 'Model Name', $sort, $direction) !!}</th>
                     <th>{!! sortLink('controller_name', 'Controller Name', $sort, $direction) !!}</th>
                     <th>{!! sortLink('created_at', 'Created At', $sort, $direction) !!}</th>
-                    <th class="text-end">Actions</th>
+
                 </tr>
                 </thead>
 
@@ -60,23 +61,24 @@
                 @forelse($scaffolds as $scaffold)
                     <tr>
                         <td>{{ $scaffold->id }}</td>
-                        <td>{{ $scaffold->table_name }}</td>
-                        <td>{{ $scaffold->model_name }}</td>
-                        <td>{{ $scaffold->controller_name }}</td>
-                        <td>{{ $scaffold->created_at->format('Y-m-d H:i') }}</td>
                         <td class="text-end">
                             <a href="{{ admin_url("helpers/scaffold/{$scaffold->id}/edit") }}"
                                class="btn btn-sm btn-warning">
                                 <i class="icon-edit"></i> Edit
                             </a>
 
-                            <button class="btn btn-sm btn-danger"
+                            <button class="btn btn-sm btn-danger" data-delete
                                     onclick="confirmDelete({{ $scaffold->id }}, '{{ $scaffold->table_name }}', '{{ $scaffold->model_name }}', '{{ $scaffold->controller_name }}')">
                                 <i class="fa fa-trash"></i> Delete
                             </button>
 
 
                         </td>
+                        <td>{{ $scaffold->table_name }}</td>
+                        <td>{{ $scaffold->model_name }}</td>
+                        <td>{{ $scaffold->controller_name }}</td>
+                        <td>{{ $scaffold->created_at->format('Y-m-d H:i') }}</td>
+
                     </tr>
                 @empty
                     <tr>
@@ -92,44 +94,62 @@
         </div>
     </div>
 </div>
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+{{--<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>--}}
 <script>
-    function confirmDelete(id, table, model, controller) {
+
+    function confirmDelete(id, title = '') {
         Swal.fire({
-            title: 'Are you absolutely sure?',
-            html: `<strong>This will permanently delete:</strong><br>
-            <ul class="text-start">
-                <li>Table: <code>${table}</code></li>
-                <li>Model: <code>${model}</code></li>
-                <li>Controller: <code>${controller}</code></li>
-                <li>Migration file(s)</li>
-            </ul>
-            <br><span class="text-danger">Your application code and data will be affected.</span>`,
+            title: 'Are you sure?',
+            text: `Delete "${title}"? This cannot be undone.`,
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonText: 'Yes, delete everything!',
+            confirmButtonText: 'Yes, delete',
             cancelButtonText: 'Cancel',
             confirmButtonColor: '#d33',
             cancelButtonColor: '#3085d6'
         }).then((result) => {
-            if (result.isConfirmed) {
-                fetch(`{{ url('admin/helpers/scaffold') }}/${id}`, {
-                    method: 'DELETE',
-                    headers: {
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                        'Accept': 'application/json'
+            if (!result.isConfirmed) return;
+
+            fetch(`{{ url('admin/helpers/scaffold') }}/${id}`, {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                },
+                // 👇 IMPORTANT: send cookies/session so CSRF passes
+                credentials: 'same-origin'
+            })
+                .then(async (res) => {
+                    const ct = res.headers.get('content-type') || '';
+                    const isJson = ct.includes('application/json');
+                    const body = isJson ? await res.json() : { message: await res.text() };
+
+                    if (!res.ok || (isJson && body.status !== 'success')) {
+                        const msg = (isJson && body.message) ? body.message : `HTTP ${res.status}`;
+                        throw new Error(msg);
                     }
-                }).then(response => response.json())
-                    .then(data => {
-                        if (data.status === 'success') {
-                            Swal.fire('Deleted!', data.message, 'success').then(() => {
-                                location.reload();
-                            });
-                        } else {
-                            Swal.fire('Error!', data.message, 'error');
-                        }
-                    });
-            }
+                    return body;
+                })
+                .then((data) => {
+                    Swal.fire('Deleted!', data.message || 'Scaffold deleted.', 'success')
+                        .then(() => location.reload());
+                })
+                .catch((err) => {
+                    Swal.fire('Error!', err.message || 'Delete failed.', 'error');
+                });
         });
     }
+    function bindDeleteButtons() {
+        document.querySelectorAll('[data-delete]').forEach(btn => {
+            if (btn.dataset.bound) return;
+            btn.dataset.bound = '1';
+            btn.addEventListener('click', /* your handler */);
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', bindDeleteButtons);
+    document.addEventListener('pjax:end', bindDeleteButtons); // re-bind after PJAX swaps content
+
 </script>
+
