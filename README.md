@@ -103,12 +103,59 @@ flowchart TD
 - **Team-friendly** – Great onboarding and shared patterns.
 
 
-## Installation
+##  Prerequisites
+
+Before starting, make sure you have:
+
+- Laravel project with [super-admin](https://github.com/super-admin-org/super-admin) installed.
+- PHP 8.1+
+- Composer
+- Node.js & npm (for asset compilation)
+- Database configured (MySQL, PostgreSQL, Oracle, or SQL Server supported).
+
+---
+
+## Installing the Scaffolding Extension
+
+Open your terminal in the Laravel project root and run:
 
 ```bash
 composer require super-admin-org/helpers
-php artisan admin:import helpers
 ```
+
+This installs the **Helpers package**, which includes the **Scaffolding System**.
+
+---
+
+## Enabling the Extension
+
+Once installed 
+
+Then publish the assets and configuration:
+
+```bash
+php artisan vendor:publish --tag=super-admin-helpers
+```
+
+This command will:
+
+- Publish Blade views for scaffold management.
+- Publish migration files for scaffold storage.
+- Add default configuration files.
+
+---
+
+## Running the Migrations
+
+The Scaffolding System stores metadata about each generated CRUD in a dedicated table.
+
+Run:
+
+```bash
+php artisan migrate
+```
+
+This creates the `scaffolds` and related tables.
 
 ---
 
