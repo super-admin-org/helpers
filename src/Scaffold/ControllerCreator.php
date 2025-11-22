@@ -197,7 +197,7 @@ PHP;
     {
         $rows = [];
         $handled = [];
-
+        $rows[] = "\$grid->column('id', 'id')->sortable();";
         foreach ($scaffold->details as $d) {
             $name = $d->name;
             $label = ucwords(str_replace('_', ' ', $name));
@@ -220,12 +220,15 @@ PHP;
             }
         }
 
+        $quickSearchCols = [];
         // Add remaining scalar columns as sortable
         foreach ($scaffold->details as $d) {
             $name = $d->name;
             if (in_array($name, $handled, true)) continue;
             $rows[] = "\$grid->column('{$name}', '{$name}')->sortable();";
+            $quickSearchCols[] = "'{$name}'";
         }
+        $rows[] = "\$grid->quickSearch(" . implode(', ', $quickSearchCols) . ");";
 
         $this->DummyGridField = "        " . implode("\n        ", $rows) . "\n";
         return $this;

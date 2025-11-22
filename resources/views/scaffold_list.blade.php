@@ -89,8 +89,16 @@
             </table>
         </div>
         <div class="card-footer clearfix">
-            {{ $scaffolds->appends(request()->except('page'))->links() }}
 
+            @if($scaffolds instanceof \Illuminate\Contracts\Pagination\LengthAwarePaginator)
+                <div class="scaffold-pagination d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                    <div class="small text-muted">
+                        Showing {{ $scaffolds->firstItem() }} to {{ $scaffolds->lastItem() }} of {{ $scaffolds->total() }} results
+                    </div>
+                    {{-- Use bootstrap view (AdminLTE = Bootstrap 4; change to bootstrap-5 if needed) --}}
+                    {{ $scaffolds->onEachSide(1)->links('pagination::bootstrap-4') }}
+                </div>
+            @endif
         </div>
     </div>
 </div>
@@ -152,4 +160,5 @@
     document.addEventListener('pjax:end', bindDeleteButtons); // re-bind after PJAX swaps content
 
 </script>
+
 

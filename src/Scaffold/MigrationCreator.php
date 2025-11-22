@@ -15,9 +15,9 @@ class MigrationCreator extends BaseMigrationCreator
     /**
      * Create a new migration file.
      *
-     * @param string    $name
-     * @param string    $path
-     * @param null      $table
+     * @param string $name
+     * @param string $path
+     * @param null $table
      * @param bool|true $create
      *
      * @return string
@@ -28,7 +28,7 @@ class MigrationCreator extends BaseMigrationCreator
 
         $path = $this->getPath($name, $path);
 
-        $stub = $this->files->get(__DIR__.'/stubs/create.stub');
+        $stub = $this->files->get(__DIR__ . '/stubs/create.stub');
 
         $this->files->put($path, $this->customPopulateStub($name, $stub, $table));
 
@@ -41,7 +41,7 @@ class MigrationCreator extends BaseMigrationCreator
      * Fire the registered post create hooks.
      *
      * @param string|null $table
-     * @param string      $path
+     * @param string $path
      *
      * @return void
      */
@@ -73,14 +73,14 @@ class MigrationCreator extends BaseMigrationCreator
     /**
      * Build the table blueprint.
      *
-     * @param array      $fields
-     * @param string     $keyName
-     * @param bool|true  $useTimestamps
+     * @param array $fields
+     * @param string $keyName
+     * @param bool|true $useTimestamps
      * @param bool|false $softDeletes
      *
+     * @return $this
      * @throws \Exception
      *
-     * @return $this
      */
     public function buildBluePrint($fields = [], $keyName = 'id', $useTimestamps = true, $softDeletes = false)
     {
@@ -95,6 +95,7 @@ class MigrationCreator extends BaseMigrationCreator
         $rows[] = "\$table->increments('$keyName');\n";
 
         foreach ($fields as $field) {
+
             $column = "\$table->{$field['type']}('{$field['name']}')";
 
             if ($field['key']) {
@@ -113,7 +114,7 @@ class MigrationCreator extends BaseMigrationCreator
                 $column .= '->nullable()';
             }
 
-            $rows[] = $column.";\n";
+            $rows[] = $column . ";\n";
         }
 
         if ($useTimestamps) {

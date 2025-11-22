@@ -76,7 +76,7 @@ class ScaffoldController extends Controller
             $sort = 'id';
         }
 
-        $scaffolds = $query->orderBy($sort, $direction)->paginate(15);
+        $scaffolds = $query->orderBy($sort, $direction)->paginate(10);
 
         return $content
             ->header('Scaffold List')
@@ -246,12 +246,14 @@ class ScaffoldController extends Controller
                 'timestamps' => $request->has('timestamps'),
                 'soft_deletes' => $request->has('soft_deletes'),
             ])->save();
+            $scaffold->created_by = $request->has('created_by');
+            $scaffold->updated_by = $request->has('updated_by');
+            $scaffold->status = $request->has('status');
 
             // Remove old details if updating
             if ($scaffold->exists) {
                 $scaffold->details()->delete();
             }
-
             foreach ($request->input('fields', []) as $index => $field) {
                 $scaffold->details()->create([
                     'name' => $field['name'] ?? null,
@@ -267,6 +269,7 @@ class ScaffoldController extends Controller
                     'order' => $index,
                 ]);
             }
+
         });
 
         // File generation
@@ -299,7 +302,7 @@ class ScaffoldController extends Controller
                         $request->get('fields'),
                         $request->get('primary_key', 'id'),
                         $request->get('timestamps') == 'on' || $request->has('timestamps'),
-                        $request->get('soft_deletes') == 'on' || $request->has('soft_deletes')
+                        $request->get('soft_deletes') == 'on' || $request->has('soft_deletes'),
                     )->create($migrationName, database_path('migrations'), $tableName);
                 } catch (\Throwable $e) {
                     Log::error('Generating migration failed: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
@@ -316,7 +319,7 @@ class ScaffoldController extends Controller
                     $paths['controller'] = (new ControllerCreator($request->get('controller_name')))
                         ->create($scaffold->id);
                     //  Admin Route
-                    $route=$this->getRoute($request);
+                    $route = $this->getRoute($request);
                     $this->ensureAdminRoute($scaffold, $route);
                 } catch (\Throwable $e) {
                     Log::error('Generating super-admin controller failed: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
@@ -385,7 +388,7 @@ class ScaffoldController extends Controller
                 } catch (\Throwable $e) {
                     Log::error('Generating blade_crud failed: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
                 }
-            }else{
+            } else {
                 $message .= '<br> message despla failed for blade_crud failed: .';
             }
 
@@ -402,7 +405,7 @@ class ScaffoldController extends Controller
                 } catch (\Throwable $e) {
                     Log::error('Generating tests failed: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
                 }
-            }else{
+            } else {
                 $message .= '<br> message despla failed for test case failed: .';
             }
 

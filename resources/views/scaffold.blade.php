@@ -266,7 +266,7 @@
 
                                         <option value="image" {{ $it==='image'?'selected':'' }}>Image</option>
                                         <option value="password" {{ $it==='password'?'selected':'' }}>Password</option>
-                                        <option value="hiden" {{ $it==='hiden'?'selected':'' }}>Hidden</option>
+                                        <option value="hidden" {{ $it==='hiden'?'selected':'' }}>Hidden</option>
                                         <option value="switch" {{ $it==='switch'?'selected':'' }}>Switch</option>
                                         <option value="checkbox" {{ $it==='checkbox'?'selected':'' }}>Checkbox</option>
                                         <option value="radio" {{ $it==='radio'?'selected':'' }}>Radio</option>
@@ -315,8 +315,8 @@
                         </tbody>
                     </table>
                 </div>
-                <button type="button" class="btn btn-success btn-sm" id="add-table-field"><i class="icon-plus"></i> Add
-                    field
+                <button type="button" class="btn btn-success btn-sm" id="add-table-field"><i class="icon-plus"></i>
+                    Add field
                 </button>
 
                 <hr>
@@ -336,6 +336,22 @@
                         <input type="text" name="primary_key" class="form-control" id="inputPrimaryKey"
                                value="{{ old('primary_key', $scaffold->primary_key ?? 'id') }}" style="width: 120px;">
                     </div>
+                    <div class="form-check me-3">
+                        <input class="form-check-input" type="checkbox" id="created_by"
+                               name="created_by" {{ old('created_by', $scaffold->created_by ?? false) ? 'checked' : '' }}>
+                        <label class="form-check-label" for="created_by">Created By</label>
+                    </div>
+                    <div class="form-check me-3">
+                        <input class="form-check-input" type="checkbox" id="updated_by"
+                               name="updated_by" {{ old('updated_by', $scaffold->updated_by ?? false) ? 'checked' : '' }}>
+                        <label class="form-check-label" for="updated_by">Updated By</label>
+                    </div>
+                    <div class="form-check me-3">
+                        <input class="form-check-input" type="checkbox" id="status"
+                               name="status" {{ old('status', $scaffold->status ?? false) ? 'checked' : '' }}>
+                        <label class="form-check-label" for="status">Status</label>
+                    </div>
+
                 </div>
             </div>
 
@@ -514,5 +530,122 @@
     }
 
     reloadOnce();
+
+    document.getElementById('created_by').addEventListener('change', function(event) {
+        if (this.checked) {
+            addCreatedByField();
+        } else {
+            removeFieldByName('created_by');
+        }
+    });
+
+    document.getElementById('updated_by').addEventListener('change', function(event) {
+        if (this.checked) {
+            addUpdatedByField();
+        } else {
+            removeFieldByName('updated_by');
+        }
+    });
+
+    function addCreatedByField() {
+        if (findFieldByName('created_by')) return; // already exists
+
+        const tbody = document.querySelector('#table-fields-body');
+        const newRow = document.createElement('tr');
+        const index = document.querySelectorAll('#table-fields tr').length - 1;
+
+        newRow.innerHTML = `
+            <td><i class="icon-arrows-alt move-handle"></i></td>
+            <td><input type="text" name="fields[${index}][name]" class="form-control" value="created_by" ></td>
+            <td><select name="fields[${index}][type]" class="form-select"><option value="integer" selected>integer</option></select></td>
+            <td><input type="checkbox" name="fields[${index}][nullable]" class="form-check-input" checked></td>
+            <td><select name="fields[${index}][key]" class="form-select"><option value="" selected>NULL</option></select></td>
+            <td><input type="text" name="fields[${index}][default]" class="form-control" value="0"></td>
+            <td><input type="text" name="fields[${index}][comment]" class="form-control" value="Record created by user ID"></td>
+            <td><select name="fields[${index}][input_type]" class="form-select js-input-type"><option value="text" selected>Text</option></select></td>
+            <td><select name="fields[${index}][options_source]" class="form-select js-opt-source"><option value="" selected>— none —</option></select></td>
+            <td><input type="text" name="fields[${index}][options_value_col]" class="form-control js-values"></td>
+            <td><input type="text" name="fields[${index}][options_label_col]" class="form-control js-labels" data-autofilled="1"></td>
+            <td><a class="btn btn-sm btn-danger table-field-remove"><i class="icon-trash"></i> remove</a></td>
+        `;
+
+        tbody.appendChild(newRow);
+    }
+
+    function addUpdatedByField() {
+        if (findFieldByName('updated_by')) return; // already exists
+
+        const tbody = document.querySelector('#table-fields-body');
+        const newRow = document.createElement('tr');
+        const index = document.querySelectorAll('#table-fields tr').length - 1;
+
+        newRow.innerHTML = `
+            <td><i class="icon-arrows-alt move-handle"></i></td>
+            <td><input type="text" name="fields[${index}][name]" class="form-control" value="updated_by" ></td>
+            <td><select name="fields[${index}][type]" class="form-select"><option value="integer" selected>integer</option></select></td>
+            <td><input type="checkbox" name="fields[${index}][nullable]" class="form-check-input" checked></td>
+            <td><select name="fields[${index}][key]" class="form-select"><option value="" selected>NULL</option></select></td>
+            <td><input type="text" name="fields[${index}][default]" class="form-control" value="0"></td>
+            <td><input type="text" name="fields[${index}][comment]" class="form-control" value="Record updated by user ID"></td>
+            <td><select name="fields[${index}][input_type]" class="form-select js-input-type"><option value="text" selected>Text</option></select></td>
+            <td><select name="fields[${index}][options_source]" class="form-select js-opt-source"><option value="" selected>— none —</option></select></td>
+            <td><input type="text" name="fields[${index}][options_value_col]" class="form-control js-values"></td>
+            <td><input type="text" name="fields[${index}][options_label_col]" class="form-control js-labels" data-autofilled="1"></td>
+            <td><a class="btn btn-sm btn-danger table-field-remove"><i class="icon-trash"></i> remove</a></td>
+        `;
+
+        tbody.appendChild(newRow);
+    }
+
+    function findFieldByName(fieldName) {
+        const rows = document.querySelectorAll('#table-fields-body tr');
+        for (const row of rows) {
+            const nameInput = row.querySelector('input[name*="[name]"]');
+            if (nameInput && nameInput.value === fieldName) {
+                return row;
+            }
+        }
+        return null;
+    }
+
+    function removeFieldByName(fieldName) {
+        const row = findFieldByName(fieldName);
+        if (row) {
+            row.remove();
+        }
+    }
+
+    document.getElementById('status').addEventListener('change', function(event) {
+        if (this.checked) {
+            addStatusField();
+        } else {
+            removeFieldByName('status');
+        }
+    });
+
+    function addStatusField() {
+        if (findFieldByName('status')) return; // already exists
+
+        const tbody = document.querySelector('#table-fields-body');
+        const newRow = document.createElement('tr');
+        const index = document.querySelectorAll('#table-fields tr').length - 1;
+
+        newRow.innerHTML = `
+            <td><i class="icon-arrows-alt move-handle"></i></td>
+            <td><input type="text" name="fields[${index}][name]" class="form-control" value="status" ></td>
+            <td><select name="fields[${index}][type]" class="form-select"><option value="tinyInteger" selected>tinyInteger</option></select></td>
+            <td><input type="checkbox" name="fields[${index}][nullable]" class="form-check-input" checked></td>
+            <td><select name="fields[${index}][key]" class="form-select"><option value="" selected>NULL</option></select></td>
+            <td><input type="text" name="fields[${index}][default]" class="form-control" value="1"></td>
+            <td><input type="text" name="fields[${index}][comment]" class="form-control" value="Record status (1=active, 0=inactive)"></td>
+            <td><select name="fields[${index}][input_type]" class="form-select js-input-type"><option value="switch" selected>Switch</option></select></td>
+            <td><select name="fields[${index}][options_source]" class="form-select js-opt-source"><option value="" selected>— none —</option></select></td>
+            <td><input type="text" name="fields[${index}][options_value_col]" class="form-control js-values"></td>
+            <td><input type="text" name="fields[${index}][options_label_col]" class="form-control js-labels" data-autofilled="1"></td>
+            <td><a class="btn btn-sm btn-danger table-field-remove"><i class="icon-trash"></i> remove</a></td>
+        `;
+
+        tbody.appendChild(newRow);
+    }
 </script>
 
