@@ -266,7 +266,7 @@
 
                                         <option value="image" {{ $it==='image'?'selected':'' }}>Image</option>
                                         <option value="password" {{ $it==='password'?'selected':'' }}>Password</option>
-                                        <option value="hidden" {{ $it==='hiden'?'selected':'' }}>Hidden</option>
+                                        <option value="hidden" {{ $it==='hidden'?'selected':$it==='hiden'?'selected':'' }}>Hidden</option>
                                         <option value="switch" {{ $it==='switch'?'selected':'' }}>Switch</option>
                                         <option value="checkbox" {{ $it==='checkbox'?'selected':'' }}>Checkbox</option>
                                         <option value="radio" {{ $it==='radio'?'selected':'' }}>Radio</option>
@@ -394,7 +394,7 @@
                 <option value="file">File</option>
                 <option value="image">Image</option>
                 <option value="password">Password</option>
-                <option value="hiden">Hidden</option>
+                <option value="hidden">Hidden</option>
                 <option value="switch">Switch</option>
                 <option value="checkbox">Checkbox</option>
                 <option value="radio">Radio</option>
