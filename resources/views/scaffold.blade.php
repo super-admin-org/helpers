@@ -229,7 +229,7 @@
                                     <select name="fields[{{ $index }}][type]" class="form-select">
                                         @foreach($dbTypes as $type)
                                             <option
-                                                value="{{ $type }}" {{ ($field['type'] ?? '') == $type ? 'selected' : '' }}>{{ $type }}</option>
+                                                    value="{{ $type }}" {{ ($field['type'] ?? '') == $type ? 'selected' : '' }}>{{ $type }}</option>
                                         @endforeach
                                     </select>
                                 </td>
@@ -241,7 +241,7 @@
                                         <option value="" {{ ($field['key'] ?? '') == '' ? 'selected' : '' }}>NULL
                                         </option>
                                         <option
-                                            value="unique" {{ ($field['key'] ?? '') == 'unique' ? 'selected' : '' }}>
+                                                value="unique" {{ ($field['key'] ?? '') == 'unique' ? 'selected' : '' }}>
                                             Unique
                                         </option>
                                         <option value="index" {{ ($field['key'] ?? '') == 'index' ? 'selected' : '' }}>
@@ -266,7 +266,7 @@
 
                                         <option value="image" {{ $it==='image'?'selected':'' }}>Image</option>
                                         <option value="password" {{ $it==='password'?'selected':'' }}>Password</option>
-                                        <option value="hidden" {{ $it==='hidden'?'selected':$it==='hiden'?'selected':'' }}>Hidden</option>
+                                        <option value="hidden" {{ $it==='hidden'|| $it==='hiden'?:'' }}>Hidden</option>
                                         <option value="switch" {{ $it==='switch'?'selected':'' }}>Switch</option>
                                         <option value="checkbox" {{ $it==='checkbox'?'selected':'' }}>Checkbox</option>
                                         <option value="radio" {{ $it==='radio'?'selected':'' }}>Radio</option>
@@ -282,7 +282,7 @@
                                         <option value="static" {{ $src==='static'?'selected':'' }}>static</option>
                                         @foreach(($modelsForSelect ?? []) as $fqcn)
                                             <option
-                                                value="{{ $fqcn }}" {{ $src===$fqcn?'selected':'' }}>{{ $fqcn }}</option>
+                                                    value="{{ $fqcn }}" {{ $src===$fqcn?'selected':'' }}>{{ $fqcn }}</option>
                                         @endforeach
                                     </select>
                                 </td>
