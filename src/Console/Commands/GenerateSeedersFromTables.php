@@ -12,33 +12,72 @@ use Illuminate\Support\Str;
 
 class GenerateSeedersFromTables extends Command
 {
-    protected $signature = 'scaffold:generate-seeders';
+    protected $signature = 'scaffold:generate-seeders {--remove-prefix=}';
     protected $description = 'Generate Laravel seeders from existing table data';
 
     public function handle()
     {
-        $tables = DB::select("SELECT tablename FROM pg_tables WHERE schemaname = 'public' ");//
+        $connection = DB::connection();
+        $driver = $connection->getDriverName();
+
+        // Get optional prefix to remove
+        $removePrefix = (string) $this->option('remove-prefix');
+
+        switch ($driver) {
+            case 'pgsql':
+                // PostgreSQL
+                $tables = DB::select("
+                SELECT tablename AS name
+                FROM pg_tables
+                WHERE schemaname = 'public'
+            ");
+                break;
+
+            case 'mysql':
+            case 'mariadb': // some setups may still report 'mysql'
+                // MySQL / MariaDB
+                $dbName = DB::getDatabaseName();
+                $tables = DB::select("
+                SELECT TABLE_NAME AS name
+                FROM information_schema.tables
+                WHERE table_schema = ?
+                  AND TABLE_TYPE = 'BASE TABLE'
+            ", [$dbName]);
+                break;
+
+            default:
+                $this->error('Unsupported database driver: ' . $driver);
+                return Command::FAILURE;
+        }
 
         foreach ($tables as $tableObj) {
-            $table = $tableObj->tablename;
+            $table = $tableObj->name;
 
-            if (in_array($table, ['migrations', 'helper_scaffolds', 'helper_scaffold_details'])) continue;
+            if (in_array($table, ['migrations', 'helper_scaffolds', 'helper_scaffold_details'])) {
+                continue;
+            }
 
-            $data = DB::table($table)->limit(500)->get(); // limit for performance
+            $data = DB::table($table)->limit(500)->get();
 
             if ($data->isEmpty()) {
                 $this->warn("⚠️ No data in table: $table");
                 continue;
             }
+            // Remove given prefix (if any) from table name for class & seeder table
+            $logicalTable = $removePrefix && Str::startsWith($table, $removePrefix)
+                ? Str::after($table, $removePrefix)
+                : $table;
 
-            $className = Str::studly($table) . 'Seeder';
-            $filePath = database_path("seeders/CmisWebsite/{$className}.php");
+            $className = Str::studly($logicalTable) . 'Seeder';
+            $filePath = database_path("seeders/{$className}.php");
 
-            $content = $this->buildSeederClass($className, $table, $data);
+            $content = $this->buildSeederClass($className, $logicalTable, $data);
             File::put($filePath, $content);
 
             $this->info("✅ Seeder generated: {$className}.php");
         }
+
+        return Command::SUCCESS;
     }
 
     protected function buildSeederClass(string $className, string $table, $data): string
@@ -71,7 +110,7 @@ class GenerateSeedersFromTables extends Command
         return <<<PHP
 <?php
 
-namespace Database\Seeders\CmisWebsite;
+namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;

@@ -157,6 +157,17 @@ php artisan migrate
 
 This creates the `scaffolds` and related tables.
 
+To generate seed data from existing tables, run:
+
+```bash
+php artisan scaffold:generate-seeders
+````
+
+if you want to remove Remove prefix from table name to generate seed
+```bash
+php artisan scaffold:generate-seeders --remove-prefix=prefix_to_remove
+````
+
 ---
 
 ## Usage

@@ -81,7 +81,7 @@ class GeneratePgHelperScaffold extends Command
                 'table_name' => $table,
                 'model_name' => $modelName,
                 'controller_name' => $controllerName,
-                'create_options' => json_encode(['migration', 'model', 'controller', 'migrate', 'menu_item']),
+                'create_options' => json_encode(['migration', 'model', 'controller', 'migrate', 'menu_item','recreate_table']),
                 'primary_key' => $primaryKey,
                 'timestamps' => $hasTimestamps,
                 'soft_deletes' => $hasSoftDeletes,

@@ -14,15 +14,19 @@ use App\Services\ScaffoldService;
 
 class RunHelperScaffoldGeneration extends Command
 {
-    protected $signature = 'scaffold:generate-code';
+    protected $signature = 'scaffold:generate-code {--table=}';
     protected $description = 'Run saveScaffold() for all records in helper_scaffolds';
 
     public function handle()
     {
        // $service = new ScaffoldService();
-
+        $table = (string) $this->option('table');
         $controller = new ScaffoldController();
-        $scaffolds = DB::table('helper_scaffolds')->get();
+        if(empty($table)){
+            $scaffolds = DB::table('helper_scaffolds')->get();
+        }else{
+            $scaffolds = DB::table('helper_scaffolds')->where('table_name',$table)->get();
+        }
 
         foreach ($scaffolds as $scaffold) {
             $details = DB::table('helper_scaffold_details')
@@ -38,6 +42,7 @@ class RunHelperScaffoldGeneration extends Command
                 'key' => $d->key,
                 'default' => $d->default,
                 'comment' => $d->comment,
+                'input_type' => $d->input_type,
             ])->toArray();
 
             // Build expected request payload
