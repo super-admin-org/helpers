@@ -131,8 +131,8 @@
     }
 </style>
 
-<div class="card card-primary">
-    <div class="card-header with-border">
+<div class="card">
+    <div class="card-header">
         <h3 class="card-title">Scaffold</h3>
     </div>
     <div class="card-body">
@@ -339,6 +339,11 @@
                                value="{{ old('primary_key', $scaffold->primary_key ?? 'id') }}" style="width: 120px;">
                     </div>
                     <div class="form-check me-3">
+                        <input class="form-check-input" type="checkbox" id="use_uuid_id"
+                               name="use_uuid_id" {{ old('use_uuid_id', $scaffold->use_uuid_id ?? false) ? 'checked' : '' }}>
+                        <label class="form-check-label" for="use_uuid_id">Use UUID id (char(36))</label>
+                    </div>
+                    <div class="form-check me-3">
                         <input class="form-check-input" type="checkbox" id="created_by"
                                name="created_by" {{ old('created_by', $scaffold->created_by ?? false) ? 'checked' : '' }}>
                         <label class="form-check-label" for="created_by">Created By</label>
@@ -353,7 +358,6 @@
                                name="status" {{ old('status', $scaffold->status ?? false) ? 'checked' : '' }}>
                         <label class="form-check-label" for="status">Status</label>
                     </div>
-
                 </div>
             </div>
 

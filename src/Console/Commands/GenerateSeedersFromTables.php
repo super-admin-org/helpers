@@ -53,7 +53,7 @@ class GenerateSeedersFromTables extends Command
         foreach ($tables as $tableObj) {
             $table = $tableObj->name;
 
-            if (in_array($table, ['migrations', 'helper_scaffolds', 'helper_scaffold_details'])) {
+            if (in_array($table, ['migrations'])) {
                 continue;
             }
 

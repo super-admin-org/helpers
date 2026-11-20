@@ -102,7 +102,7 @@
                 history.push(terminal_query.value);
 
                 let terminal_card = document.getElementById('terminal-card');
-                terminal_card.innerHTML += '<div class="item"><small class="label label-default"> > artisan '+terminal_query.value+'<\/small><\/div>';
+                terminal_card.innerHTML += '<div class="item"><small class="badge bg-secondary"> > artisan '+terminal_query.value+'<\/small><\/div>';
                 terminal_card.innerHTML += '<div class="item">'+response.data+'<\/div>';
                 // fix scroll to end
 

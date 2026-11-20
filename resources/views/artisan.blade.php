@@ -1,7 +1,7 @@
 
 <!-- Chat card -->
-<div class="card card-primary">
-    <div class="card-header with-border">
+<div class="card">
+    <div class="card-header">
         <i class="icon-terminal"></i>
     </div>
     <div class="card-body chat" id="terminal-card">
@@ -10,7 +10,7 @@
         <!-- /.item -->
     </div>
     <!-- /.chat -->
-    <div class="card-footer with-border">
+    <div class="card-footer">
 
         <div style="margin-bottom: 10px;">
 
@@ -46,7 +46,7 @@
 
         <div class="input-group">
             <span class="input-group-text px-2">artisan</span>
-            <input class="form-control input-lg" id="terminal-query" placeholder="command">
+            <input class="form-control" id="terminal-query" placeholder="command">
         </div>
     </div>
 </div>

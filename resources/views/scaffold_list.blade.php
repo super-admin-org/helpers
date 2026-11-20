@@ -12,7 +12,7 @@
     }
 @endphp
 
-<div class="card card-primary">
+<div class="card">
     <div class="card-header">
         <h3 class="card-title">Scaffold List</h3>
         <form method="GET" class="p-3">
@@ -148,17 +148,6 @@
                 });
         });
     }
-    function bindDeleteButtons() {
-        document.querySelectorAll('[data-delete]').forEach(btn => {
-            if (btn.dataset.bound) return;
-            btn.dataset.bound = '1';
-            btn.addEventListener('click', /* your handler */);
-        });
-    }
-
-    document.addEventListener('DOMContentLoaded', bindDeleteButtons);
-    document.addEventListener('pjax:end', bindDeleteButtons); // re-bind after PJAX swaps content
-
 </script>
 
 

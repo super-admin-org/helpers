@@ -82,8 +82,10 @@ class MigrationCreator extends BaseMigrationCreator
      * @throws \Exception
      *
      */
-    public function buildBluePrint($fields = [], $keyName = 'id', $useTimestamps = true, $softDeletes = false)
+    public function buildBluePrint($fields = [], $keyName = 'id', $useTimestamps = true, $softDeletes = false,$useUuidId=false)
     {
+        $rows = [];
+
         $fields = array_filter($fields, function ($field) {
             return isset($field['name']) && !empty($field['name']);
         });
@@ -91,8 +93,13 @@ class MigrationCreator extends BaseMigrationCreator
         if (empty($fields)) {
             throw new \Exception('Table fields can\'t be empty');
         }
-
-        $rows[] = "\$table->increments('$keyName');\n";
+        if ($useUuidId) {
+            // id as char(36) primary key
+            $rows[] = "\$table->char('{$keyName}', 36)->primary();\n";
+        } else {
+            // default auto-increment id
+            $rows[] = "\$table->increments('{$keyName}');\n";
+        }
 
         foreach ($fields as $field) {
 
@@ -130,3 +137,4 @@ class MigrationCreator extends BaseMigrationCreator
         return $this;
     }
 }
+

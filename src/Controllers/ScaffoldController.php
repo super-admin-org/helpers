@@ -297,12 +297,14 @@ class ScaffoldController extends Controller
                     foreach ($migrationFiles as $file) {
                         $this->backupIfExists($file);
                     }
-
+                    $useUuidId = $request->has('use_uuid_id')??false;
+                   // dd($useUuidId);
                     $paths['migration'] = (new MigrationCreator(app('files'), '/'))->buildBluePrint(
                         $request->get('fields'),
                         $request->get('primary_key', 'id'),
                         $request->get('timestamps') == 'on' || $request->has('timestamps'),
                         $request->get('soft_deletes') == 'on' || $request->has('soft_deletes'),
+                        $useUuidId
                     )->create($migrationName, database_path('migrations'), $tableName);
                 } catch (\Throwable $e) {
                     Log::error('Generating migration failed: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);

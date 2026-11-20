@@ -26,7 +26,12 @@ class HelpersServiceProvider extends ServiceProvider
     public function boot()
     {
         $this->loadMigrationsFrom(__DIR__ . '/../database/migrations');
-        $this->loadViewsFrom(__DIR__ . '/../resources/views', 'super-admin-helpers');
+        // Template-aware: <views>/<template>/ and <template>/extensions/super-admin-helpers/ override <views>/.
+        if (class_exists(\SuperAdmin\Admin\Template\TemplateManager::class)) {
+            \SuperAdmin\Admin\Facades\Admin::template()->extensionViews('super-admin-helpers', __DIR__ . '/../resources/views');
+        } else {
+            $this->loadViewsFrom(__DIR__ . '/../resources/views', 'super-admin-helpers');
+        }
 
         Helpers::boot();
     }

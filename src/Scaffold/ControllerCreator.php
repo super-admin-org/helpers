@@ -254,7 +254,7 @@ PHP;
                 $l = $lab ? "'{$lab}'" : 'null';
                 return "\$this->optionsMap({$s}, {$v}, {$l})";
             };
-            $authID = Auth::user()->id;
+            $authID = Auth::user()->id??0;
             switch ($type) {
                 case 'select':
                     if ($src) {
