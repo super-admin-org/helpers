@@ -9,6 +9,13 @@ use SuperAdmin\Admin\Extension;
 class Helpers extends Extension
 {
     /**
+     * Migrations run by `php artisan migrate`; super-admin also lists pending ones in `admin:upgrade`.
+     *
+     * @var string
+     */
+    public $migrations = __DIR__.'/../database/migrations';
+
+    /**
      * Bootstrap this package.
      *
      * @return void
